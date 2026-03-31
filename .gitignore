@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.spec
+
+# 运行时生成
+config.json
+db/
+*.db
+
+# 模型文件（体积大，用户自行下载）
+models/
+
+# 打包产物
+*.exe
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code 本地配置
+.claude/settings.local.json
