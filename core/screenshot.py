@@ -3,10 +3,8 @@
 """
 
 import hashlib
-from typing import Optional
 
 import mss
-import mss.tools
 from PIL import Image, ImageDraw
 import imagehash
 

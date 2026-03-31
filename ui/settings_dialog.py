@@ -188,10 +188,10 @@ class SettingsDialog(tk.Toplevel):
                 messagebox.showerror("输入错误", f"字段 {key} 的值无效：{e}", parent=self)
                 return
 
-        # 验证阈值范围
+        # 验证阈值范围（严格大于 0.0，因为 0.0 会匹配所有题目失去过滤意义）
         thresh = new_cfg.get("similarity_threshold", 0.8)
         if not (0.0 < thresh <= 1.0):
-            messagebox.showerror("输入错误", "题库匹配阈值必须在 0.0~1.0 之间", parent=self)
+            messagebox.showerror("输入错误", "题库匹配阈值必须在 (0.0, 1.0] 之间（不含 0.0）", parent=self)
             return
 
         opacity = new_cfg.get("hud_opacity", 0.85)

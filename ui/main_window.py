@@ -4,6 +4,7 @@
 """
 
 import os
+import threading
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import logging
@@ -126,6 +127,14 @@ class MainWindow:
         )
         self._stop_btn.pack(side=tk.LEFT, padx=4)
 
+        # 半自动模式专用：标记当前题目已手动完成
+        self._answered_btn = tk.Button(
+            btn_frame, text="✓ 已答", width=8,
+            bg="#1976d2", fg="white", font=("微软雅黑", 10),
+            command=self._on_mark_answered, state=tk.DISABLED,
+        )
+        self._answered_btn.pack(side=tk.LEFT, padx=4)
+
         tk.Button(
             btn_frame, text="设置", width=8,
             command=self._open_settings,
@@ -144,7 +153,7 @@ class MainWindow:
     # ------------------------------------------------------------------
 
     def _select_db(self):
-        """选择已有的 .db 题库文件。"""
+        """选择已有的 .db 题库文件，若引擎运行中则热切换。"""
         db_dir = config.get_db_dir()
         path = filedialog.askopenfilename(
             title="选择题库文件",
@@ -156,6 +165,10 @@ class MainWindow:
             self._current_db_path = path
             self._db_var.set(os.path.basename(path))
             self._status_var.set(f"已选择题库: {os.path.basename(path)}")
+            # 引擎运行中：热切换题库
+            if self._engine and self._engine.is_running:
+                self._engine.switch_db(path)
+                self._status_var.set(f"题库已切换: {os.path.basename(path)}")
 
     def _import_excel(self):
         """从 Excel 文件导入题目到题库。"""
@@ -232,16 +245,37 @@ class MainWindow:
 
         self._start_btn.config(state=tk.DISABLED)
         self._stop_btn.config(state=tk.NORMAL)
+        # 半自动模式才显示"已答"按钮
+        if mode == EngineMode.SEMI_AUTO:
+            self._answered_btn.config(state=tk.NORMAL)
 
     def _on_stop(self):
-        if self._engine:
-            self._engine.stop()
-            self._engine = None
-
+        """停止引擎（非阻塞：在子线程执行 stop，避免主线程冻结）。"""
+        engine = self._engine
+        self._engine = None
         self._start_btn.config(state=tk.NORMAL)
         self._stop_btn.config(state=tk.DISABLED)
+        self._answered_btn.config(state=tk.DISABLED)
+        self._hud.set_status("正在停止…")
+        self._status_var.set("正在停止…")
+
+        def _do_stop():
+            if engine:
+                engine.stop()
+            self._root.after(0, self._on_stop_done)
+
+        threading.Thread(target=_do_stop, daemon=True, name="EngineStopThread").start()
+
+    def _on_stop_done(self):
+        """stop 完成后回到主线程更新 UI。"""
         self._hud.set_status("已停止")
         self._status_var.set("已停止")
+
+    def _on_mark_answered(self):
+        """半自动模式：用户手动选择答案后点击，标记当前题目已答。"""
+        if self._engine:
+            self._engine.mark_current_answered()
+            self._status_var.set("已标记当前题目为已答")
 
     # ------------------------------------------------------------------
     # 引擎回调（在引擎线程调用，全部通过 after() 派发到主线程）
@@ -316,8 +350,10 @@ class MainWindow:
     # ------------------------------------------------------------------
 
     def _on_close(self):
-        if self._engine and self._engine.is_running:
-            self._engine.stop()
+        engine = self._engine
+        self._engine = None
+        if engine and engine.is_running:
+            engine.stop()
         if self._hud:
             self._hud.destroy()
         config.save_config(self._cfg)

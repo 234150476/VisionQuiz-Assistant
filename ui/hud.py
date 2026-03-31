@@ -5,7 +5,6 @@ HUD 模块 —— 屏幕顶部常驻悬浮提示条
 """
 
 import tkinter as tk
-import threading
 import logging
 import sys
 

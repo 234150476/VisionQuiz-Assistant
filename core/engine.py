@@ -4,7 +4,6 @@
 
 import threading
 import logging
-import time
 import os
 from typing import Optional, Callable
 
@@ -13,7 +12,7 @@ from core.cache import CacheDB
 from core.matcher import QuestionMatcher
 from core.ai_client import AIClient
 from core.recognizer import Recognizer, RecognizeResult
-from core.clicker import AutoClicker, parse_answers
+from core.clicker import AutoClicker
 from core import screenshot as ss
 
 logger = logging.getLogger(__name__)
@@ -72,9 +71,6 @@ class Engine:
 
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
-
-        # 线程锁：保护 _matcher 的热切换
-        self._matcher_lock = threading.Lock()
 
         # 快照：mark_current_answered 使用固定 phash，避免与 _last_phash 竞态
         self._last_phash: str = ""
@@ -284,10 +280,9 @@ class Engine:
         if os.path.isfile(db_path):
             try:
                 new_matcher = QuestionMatcher(db_path)
-                with self._matcher_lock:
-                    self._matcher = new_matcher
-                    if self._recognizer:
-                        self._recognizer.set_matcher(new_matcher)
+                self._matcher = new_matcher
+                if self._recognizer:
+                    self._recognizer.set_matcher(new_matcher)
                 logger.info("题库已切换: %s", db_path)
             except Exception as e:
                 logger.warning("题库切换失败: %s", e)

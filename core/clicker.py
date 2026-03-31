@@ -107,15 +107,6 @@ class AutoClicker:
         answer_str: 答案字符串（多选用 |答案分隔| 分隔）
         返回 True 表示全部点击完成，False 表示有选项定位失败。
         """
-        import mss
-        from PIL import Image
-
-        def grab_screen():
-            with mss.mss() as sct:
-                monitor = sct.monitors[1]
-                raw = sct.grab(monitor)
-                return Image.frombytes("RGB", raw.size, raw.bgra, "raw", "BGRX")
-
         answers = parse_answers(answer_str)
         all_success = True
         current_img = screenshot_img  # 首次用引擎传入的截图

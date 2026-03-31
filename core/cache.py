@@ -235,6 +235,31 @@ class CacheDB:
                     record["answered"] = 1
                     record["updated_at"] = now_str
 
+    def update_phash(self, question_hash: str, phash: str) -> None:
+        """
+        为已存在的记录补写 phash 字段（当记录原本无 phash 时调用）。
+        同步更新内存缓存，使该记录加入 _mem_phash_list 参与快速匹配。
+        """
+        if not question_hash or not phash:
+            return
+        with self._lock:
+            if question_hash not in self._mem_by_qhash:
+                return  # 记录不存在，无需更新
+            record = self._mem_by_qhash[question_hash]
+            if record.get("phash"):
+                return  # 已有 phash，无需覆盖
+            # 更新数据库
+            self._conn.execute(
+                "UPDATE cache SET phash = ? WHERE question_hash = ?",
+                (phash, question_hash),
+            )
+            self._conn.commit()
+            # 同步内存
+            record["phash"] = phash
+            # 加入 phash 列表（避免重复）
+            if not any(r["question_hash"] == question_hash for r in self._mem_phash_list):
+                self._mem_phash_list.append(record)
+
     def close(self) -> None:
         """关闭数据库连接。"""
         with self._lock:

@@ -121,9 +121,9 @@ class Recognizer:
                 logger.debug("question_hash 缓存命中: %s", qhash)
                 result.answer = cached_by_text["answer"]
                 result.source = "cache"
-                # 补写 phash 绑定（若缓存记录尚无 phash，更新缓存以加速下次识别）
+                # 补写 phash 绑定：用专用的 update_phash() 方法，绕过 insert 的已存在早退逻辑
                 if not cached_by_text.get("phash") and phash_str:
-                    self._cache.insert(qhash, phash_str, result.answer, cached_by_text.get("source", "cache"))
+                    self._cache.update_phash(qhash, phash_str)
                 return result
 
             # 6. 题库模糊匹配
