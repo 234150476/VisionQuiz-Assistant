@@ -30,6 +30,8 @@ class QuestionMatcher:
             if score > best_score:
                 best_score = score
                 best_match = item
+                if best_score == 1.0:
+                    break
 
         if best_match is not None and best_score >= threshold:
             return {

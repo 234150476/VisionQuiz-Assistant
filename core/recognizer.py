@@ -105,7 +105,8 @@ class Recognizer:
 
         # 3. OCR 识别文本
         ocr_text = ""
-        if is_ocr_available():
+        ocr_available = is_ocr_available()
+        if ocr_available:
             ocr_text = ocr_image(screenshot_img)
             logger.debug("OCR 文本: %s", ocr_text[:80])
 
@@ -147,7 +148,7 @@ class Recognizer:
             return None
 
         try:
-            if is_ocr_available() and ocr_text.strip():
+            if ocr_available and ocr_text.strip():
                 # 图文双路
                 answer = self._ai.answer_with_image(ocr_text, screenshot_img)
             else:

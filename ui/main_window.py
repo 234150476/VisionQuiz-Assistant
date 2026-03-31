@@ -324,7 +324,7 @@ class MainWindow:
 
     def _on_offset_change(self, _=None):
         try:
-            val = int(self._offset_var.get())
+            val = self._offset_var.get()
         except (ValueError, tk.TclError):
             return
         if self._hud:
@@ -360,12 +360,32 @@ class MainWindow:
     def _on_close(self):
         engine = self._engine
         self._engine = None
-        if engine and engine.is_running:
-            engine.stop()
-        if self._hud:
-            self._hud.destroy()
         config.save_config(self._cfg)
-        self._root.destroy()
+
+        if not (engine and engine.is_running):
+            # 引擎未运行，直接销毁
+            if self._hud:
+                self._hud.destroy()
+            self._root.destroy()
+            return
+
+        # 引擎运行中：在子线程执行 stop（join 最多 35s），避免冻结主线程
+        if self._hud:
+            self._hud.set_status("正在退出…")
+
+        def _do_close():
+            engine.stop()
+            self._root.after(0, _finish)
+
+        def _finish():
+            try:
+                if self._hud:
+                    self._hud.destroy()
+                self._root.destroy()
+            except tk.TclError:
+                pass
+
+        threading.Thread(target=_do_close, daemon=True, name="EngineCloseThread").start()
 
     # ------------------------------------------------------------------
     # 启动主循环

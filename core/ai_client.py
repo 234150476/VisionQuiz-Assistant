@@ -188,7 +188,7 @@ class AIClient:
                 y = int(parts[1].strip())
                 # 范围校验：坐标必须在截图范围内
                 img_w, img_h = screenshot_img.size
-                if 0 <= x <= img_w and 0 <= y <= img_h:
+                if 0 <= x < img_w and 0 <= y < img_h:
                     return (x, y)
                 logger.warning("AI 返回坐标越界: (%d, %d)，截图尺寸 %dx%d", x, y, img_w, img_h)
                 return None
