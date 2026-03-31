@@ -131,6 +131,7 @@ class AutoClicker:
                 all_success = False
 
             # 多选题：用点击后截图作为下一轮定位的基准，确保坐标不漂移
+            # 即使验证未通过也更新截图，因为界面状态已经改变（点击动作已发生）
             current_img = after
 
         return all_success

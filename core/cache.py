@@ -195,7 +195,7 @@ class CacheDB:
                         self._mem_phash_list.append(existing)
                 return
 
-            self._conn.execute(
+            cursor = self._conn.execute(
                 """
                 INSERT OR IGNORE INTO cache (question_hash, phash, answer, source)
                 VALUES (?, ?, ?, ?)
@@ -206,6 +206,7 @@ class CacheDB:
 
             now_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             record = {
+                "id": cursor.lastrowid,
                 "question_hash": question_hash,
                 "phash": phash,
                 "answer": answer,

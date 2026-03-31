@@ -369,7 +369,12 @@ class MainWindow:
             self._root.destroy()
             return
 
-        # 引擎运行中：在子线程执行 stop（join 最多 35s），避免冻结主线程
+        # 引擎运行中：禁用所有控制按钮，防止关闭过程中重复操作
+        self._start_btn.config(state=tk.DISABLED)
+        self._stop_btn.config(state=tk.DISABLED)
+        self._answered_btn.config(state=tk.DISABLED)
+
+        # 在子线程执行 stop（join 最多 35s），避免冻结主线程
         if self._hud:
             self._hud.set_status("正在退出…")
 
