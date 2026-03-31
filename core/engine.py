@@ -72,8 +72,9 @@ class Engine:
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
-        # 快照：mark_current_answered 使用固定 phash，避免与 _last_phash 竞态
+        # 快照：mark_current_answered 使用固定 phash/qhash，避免与 _last_phash 竞态
         self._last_phash: str = ""
+        self._last_result_qhash: str = ""   # 最后一次识别成功的 question_hash（兜底用）
         self._last_phash_lock = threading.Lock()
 
     # ------------------------------------------------------------------
@@ -205,19 +206,28 @@ class Engine:
         with self._last_phash_lock:
             if phash_str == self._last_phash:
                 return
-            self._last_phash = phash_str
+            # 注意：_last_phash 在识别成功后才更新，识别失败时保持旧值以允许下次重试
 
         # 检查 pHash 缓存（已答过，直接跳过）
         if self._cache:
             cached = self._cache.get_by_phash(phash_str)
             if cached and cached.get("answered"):
-                return  # 已答过，跳过
+                # 已答过的题目也更新 _last_phash，避免反复触发"已答"检查
+                with self._last_phash_lock:
+                    self._last_phash = phash_str
+                return
 
         # 识别（将 phash_str 传入，避免 recognizer 内部重复计算）
         result = self._recognizer.recognize(img, phash_str=phash_str)
         if result is None:
             self._notify_error("识别失败：所有策略均未能给出答案")
+            # 识别失败：不更新 _last_phash，下次同一画面可以重试
             return
+
+        # 识别成功：更新 _last_phash 和 _last_result_qhash
+        with self._last_phash_lock:
+            self._last_phash = phash_str
+            self._last_result_qhash = result.question_hash
 
         # 通知 UI 展示结果
         self._notify_result(result)
@@ -264,15 +274,26 @@ class Engine:
     def mark_current_answered(self):
         """
         半自动模式下，用户手动选择答案后调用此方法标记当前题目已完成。
-        使用加锁读取 _last_phash 快照，避免与引擎线程竞态。
+        优先通过 pHash 查找缓存记录；若 pHash 尚未写入缓存（如题目通过 question_hash
+        命中缓存但 phash 补写还未完成），则直接使用最后一次识别结果的 question_hash 兜底。
         """
         with self._last_phash_lock:
             phash_snapshot = self._last_phash
+            qhash_snapshot = self._last_result_qhash
 
-        if self._cache and phash_snapshot:
+        if not self._cache:
+            return
+
+        # 优先通过 pHash 查找
+        if phash_snapshot:
             cached = self._cache.get_by_phash(phash_snapshot)
             if cached and cached.get("question_hash"):
                 self._cache.mark_answered(cached["question_hash"])
+                return
+
+        # 兜底：直接用最后一次识别结果的 question_hash
+        if qhash_snapshot:
+            self._cache.mark_answered(qhash_snapshot)
 
     def switch_db(self, db_path: str):
         """切换题库（运行时热切换，线程安全）。"""

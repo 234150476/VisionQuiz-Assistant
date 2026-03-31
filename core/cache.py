@@ -180,7 +180,20 @@ class CacheDB:
         """
         with self._lock:
             if question_hash in self._mem_by_qhash:
-                return  # 内存已有，无需插入
+                # 记录已存在：若传入了新的 phash 且原记录无 phash，则补写
+                existing = self._mem_by_qhash[question_hash]
+                if phash and not existing.get("phash"):
+                    # 更新数据库
+                    self._conn.execute(
+                        "UPDATE cache SET phash = ? WHERE question_hash = ?",
+                        (phash, question_hash),
+                    )
+                    self._conn.commit()
+                    # 同步内存
+                    existing["phash"] = phash
+                    if not any(r["question_hash"] == question_hash for r in self._mem_phash_list):
+                        self._mem_phash_list.append(existing)
+                return
 
             self._conn.execute(
                 """

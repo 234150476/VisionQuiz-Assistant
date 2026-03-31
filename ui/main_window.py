@@ -217,6 +217,10 @@ class MainWindow:
     # ------------------------------------------------------------------
 
     def _on_start(self):
+        # 防止重复启动（理论上按钮已 disabled，此处作为双重保险）
+        if self._engine and self._engine.is_running:
+            return
+
         # 检查配置完整性
         if not config.is_config_complete(self._cfg):
             messagebox.showwarning(
@@ -267,9 +271,13 @@ class MainWindow:
         threading.Thread(target=_do_stop, daemon=True, name="EngineStopThread").start()
 
     def _on_stop_done(self):
-        """stop 完成后回到主线程更新 UI。"""
-        self._hud.set_status("已停止")
-        self._status_var.set("已停止")
+        """stop 完成后回到主线程更新 UI。检查 root/hud 是否仍存活（防止关窗竞态）。"""
+        try:
+            if self._hud:
+                self._hud.set_status("已停止")
+            self._status_var.set("已停止")
+        except tk.TclError:
+            pass  # root 已销毁，忽略
 
     def _on_mark_answered(self):
         """半自动模式：用户手动选择答案后点击，标记当前题目已答。"""

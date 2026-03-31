@@ -143,7 +143,7 @@ class HUD:
         ans_display = answer.replace("|答案分隔|", "  /  ")
 
         # 来源标签
-        source_label = {"bank": "📚 题库", "cache": "⚡ 缓存", "ai": "🤖 AI"}.get(source, "")
+        source_label = {"bank": "[题库]", "cache": "[缓存]", "ai": "[AI]"}.get(source, "")
 
         self._q_var.set(q_short if q_short else "")
         self._a_var.set(f"答案：{ans_display}" if ans_display else "")
