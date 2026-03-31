@@ -1,0 +1,10 @@
+mss
+pillow
+imagehash
+pyautogui
+openai
+openpyxl
+paddlepaddle
+paddleocr
+pywin32
+pyinstaller
