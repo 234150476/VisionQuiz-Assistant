@@ -154,7 +154,7 @@ class SettingsDialog(tk.Toplevel):
         )
         var_offset = tk.IntVar()
         self._vars["hud_top_offset"] = var_offset
-        tk.Spinbox(parent, from_=0, to=200, textvariable=var_offset, width=10).grid(
+        tk.Spinbox(parent, from_=0, to=300, textvariable=var_offset, width=10).grid(
             row=1, column=1, sticky="w", padx=10, pady=4
         )
 

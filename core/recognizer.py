@@ -3,6 +3,7 @@
 """
 
 import logging
+import hashlib
 import threading
 from typing import Optional
 
@@ -168,7 +169,6 @@ class Recognizer:
             self._cache.insert(result.question_hash, phash_str, answer, "ai")
         elif phash_str:
             # 无文本 hash 但有 phash：用 phash 字符串本身的 MD5 做 question_hash（唯一性有保证）
-            import hashlib
             fallback_qhash = hashlib.md5(phash_str.encode()).hexdigest()
             self._cache.insert(fallback_qhash, phash_str, answer, "ai")
             result.question_hash = fallback_qhash

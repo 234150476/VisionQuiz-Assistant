@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 # PaddleOCR 懒加载实例（避免启动时过慢）
 _ocr_instance = None
+_ocr_init_attempted = False  # 避免模型不存在时每次调用都重复检测
 
 
 def _detect_model_dir() -> Optional[str]:
@@ -89,12 +90,13 @@ def _build_ocr(model_dir: str):
 def get_ocr():
     """
     获取 PaddleOCR 单例。首次调用时自动检测模型并初始化。
-    若模型不存在或初始化失败，返回 None。
+    若模型不存在或初始化失败，返回 None，且不再重复尝试初始化。
     """
-    global _ocr_instance
-    if _ocr_instance is not None:
+    global _ocr_instance, _ocr_init_attempted
+    if _ocr_init_attempted:
         return _ocr_instance
 
+    _ocr_init_attempted = True
     model_dir = _detect_model_dir()
     if model_dir is None:
         logger.warning("未检测到 PaddleOCR 模型目录（models/），将跳过本地 OCR")
