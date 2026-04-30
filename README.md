@@ -226,6 +226,7 @@ sequenceDiagram
 
 ## 🛣️ Roadmap
 
+- [x] 多模型统一接口（OpenAI / Claude / Qwen-VL 已验证）
 - [ ] 接入 Xiaomi MiMo-V2.5 原生多模态模型，对比视觉理解效果
 - [ ] 基于长上下文能力，支持整套试卷一次性解析与知识点归纳
 - [ ] 增加多轮对话式讲解（追问、举一反三）
