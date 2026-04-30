@@ -36,8 +36,6 @@
 
 ## 🏗️ Agent 架构
 
-## 🏗️ Agent 架构
-
 ```mermaid
 flowchart TB
     subgraph P["🔍 感知层 · Perception"]
@@ -156,19 +154,71 @@ Excel 格式：A 列题目 / B 列参考答案（多答案用 `|` 分隔）
 
 ## 🔧 决策流程
 
-```
-输入图像 → pHash 特征匹配缓存
-        ↓ 未命中
-      OCR 文本提取 → 文本哈希匹配缓存
-        ↓ 未命中
-      本地知识库模糊检索（阈值过滤）
-        ↓ 未命中
-      多模态大模型调用（图 + 文双路输入）
-        ↓
-      结构化解析输出 → 缓存回写 → 展示
-```
+```mermaid
+flowchart LR
+    A([输入图像]) --> B[计算 pHash]
+    B --> C{图像缓存<br/>命中?}
+    C -- ✅ --> Z([输出解析])
+    C -- ❌ --> D[PaddleOCR<br/>文本提取]
+    D --> E[文本 MD5]
+    E --> F{文本缓存<br/>命中?}
+    F -- ✅ --> Z
+    F -- ❌ --> G[本地题库<br/>模糊检索]
+    G --> H{相似度<br/>≥ 阈值?}
+    H -- ✅ --> Z
+    H -- ❌ --> I[多模态大模型<br/>图+文双路输入]
+    I --> J[结构化解析]
+    J --> K[(写入缓存)]
+    K --> Z
 
----
+    style A fill:#bbdefb,stroke:#1976d2
+    style Z fill:#c8e6c9,stroke:#388e3c
+    style I fill:#f8bbd0,stroke:#c2185b
+    style K fill:#ffe0b2,stroke:#f57c00
+```
+## 🔄 端到端时序
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant E as Agent Engine
+    participant C as Cache
+    participant O as PaddleOCR
+    participant D as 本地题库
+    participant M as 多模态模型
+    participant V as 展示面板
+
+    U->>E: 触发截图
+    E->>E: 计算 pHash
+    E->>C: 查询图像缓存
+
+    alt 缓存命中
+        C-->>E: 返回历史解析
+        E->>V: 渲染解析
+    else 缓存未命中
+        E->>O: 请求 OCR
+        O-->>E: 文本 + 坐标
+        E->>C: 查询文本缓存
+
+        alt 文本缓存命中
+            C-->>E: 返回历史解析
+        else 继续
+            E->>D: 模糊检索本地题库
+            alt 题库命中
+                D-->>E: 返回参考答案
+            else 题库未命中
+                E->>M: 调用多模态模型<br/>(图 + OCR 文本)
+                M-->>E: 结构化解析 + 知识点
+            end
+        end
+
+        E->>C: 回写缓存
+        E->>V: 渲染解析
+    end
+
+    V-->>U: 展示答案 + 讲解
+```
 
 ## 🛣️ Roadmap
 
