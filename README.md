@@ -1,5 +1,9 @@
 # VisionQuiz Assistant · 多模态题目智能解析 Agent
-
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![PaddleOCR](https://img.shields.io/badge/OCR-PaddleOCR-red)
+![Multimodal](https://img.shields.io/badge/AI-Multimodal-purple)
+![Agent](https://img.shields.io/badge/Architecture-Agent-orange)
 > 基于视觉大模型 + OCR 的通用题目理解工具，面向**个人学习、培训复习、题库内容生成、教育辅助**场景。
 > 通过截图输入，自动识别题型、定位题干与选项、生成答案解析与知识点讲解。
 > 支持任意兼容 OpenAI 格式的多模态模型自由切换。
@@ -28,7 +32,7 @@
 | **智能缓存层** | 图像 pHash + 文本 MD5 双索引，已解析内容秒级复用 |
 | **可视化讲解面板** | 轻量化展示区呈现题目摘要 + 答案 + 知识点来源 |
 | **交互模式** | 学习模式（仅展示解析）/ 辅助模式（辅助定位答题区域） |
-| **多题型兼容** | 单选/多选/判断/填空，答案以 `\|` 分隔存储 |
+| **多题型兼容** | 单选 / 多选 / 判断 / 填空，多答案使用竖线分隔存储 |
 | **本地 OCR** | PaddleOCR 本地推理，数据不出域，适合隐私敏感场景 |
 | **题库热切换** | 运行中可动态切换知识库，无需重启 |
 
