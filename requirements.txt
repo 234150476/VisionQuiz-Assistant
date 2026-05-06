@@ -8,3 +8,6 @@ paddlepaddle
 paddleocr
 pyinstaller
 flask>=3.0.0
+# P7: ElementProvider 依赖
+websocket-client>=1.6.0
+uiautomation>=2.0.18

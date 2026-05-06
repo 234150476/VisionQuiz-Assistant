@@ -14,7 +14,8 @@ from core.cache import CacheDB
 from core.matcher import QuestionMatcher
 from core.ai_client import AIClient
 from core.recognizer import Recognizer, RecognizeResult
-from core.clicker import AutoClicker
+from core.clicker import AutoClicker, ElementClicker
+from core.element_provider import ElementProvider, QuestionElement
 from core import screenshot as ss
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,9 @@ class Engine:
         self._ai: Optional[AIClient] = None
         self._recognizer: Optional[Recognizer] = None
         self._clicker: Optional[AutoClicker] = None
+        self._provider: Optional[ElementProvider] = None
+        self._element_clicker: Optional[ElementClicker] = None
+        self._last_question_hash: str = ""  # 元素模式去重用
 
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
@@ -230,6 +234,37 @@ class Engine:
                 sw, sh = self._screen_size
                 clicker = AutoClicker(recognizer, sw, sh)
 
+            # P7: ElementProvider 初始化
+            input_mode = cfg.get("input_mode", "screenshot")
+            if input_mode == "browser":
+                from core.browser_provider import BrowserElementProvider
+                self._provider = BrowserElementProvider(
+                    debug_port=cfg.get("browser_debug_port", 9222),
+                    selector_config=cfg.get("browser_selector_config", ""),
+                )
+                if not self._provider.connect():
+                    logger.warning("浏览器 Provider 连接失败，降级到截图模式")
+                    self._provider = None
+                else:
+                    logger.info("浏览器模式已激活: %s", self._provider.name)
+            elif input_mode == "windows":
+                from core.windows_provider import WindowsElementProvider
+                self._provider = WindowsElementProvider(
+                    target_title=cfg.get("windows_target_title", ""),
+                )
+                if not self._provider.connect():
+                    logger.warning("桌面程序 Provider 连接失败，降级到截图模式")
+                    self._provider = None
+                else:
+                    logger.info("桌面程序模式已激活: %s", self._provider.name)
+
+            # 元素模式下的点击器
+            if self._provider and self._mode == EngineMode.FULL_AUTO:
+                self._element_clicker = ElementClicker(self._provider)
+            elif self._provider:
+                # 半自动元素模式不需要 clicker
+                pass
+
             return cache, matcher, ai_client, recognizer, clicker
         except Exception:
             self._cleanup_initialized(initialized)
@@ -259,9 +294,17 @@ class Engine:
                 logger.exception("关闭缓存失败")
             self._cache = None
 
+        if self._provider:
+            try:
+                self._provider.close()
+            except Exception:
+                logger.exception("关闭 ElementProvider 失败")
+            self._provider = None
+
         self._matcher = None
         self._recognizer = None
         self._clicker = None
+        self._element_clicker = None
 
     # ------------------------------------------------------------------
     # 主循环
@@ -272,7 +315,10 @@ class Engine:
 
         while not self._stop_event.is_set():
             try:
-                self._tick()
+                if self._provider:
+                    self._tick_provider()
+                else:
+                    self._tick()
             except Exception as e:
                 logger.exception("引擎循环异常: %s", e)
                 self._notify_error(f"运行异常: {e}")
@@ -421,6 +467,101 @@ class Engine:
             }
         else:
             # 全自动模式：立即标记 answered
+            if self._cache and result.question_hash:
+                self._cache.mark_answered(result.question_hash)
+
+    def _tick_provider(self):
+        """元素模式的主循环分支：通过 Provider 直接读取元素。"""
+        # 半自动 pending_answer 超时检查（与截图模式共享）
+        if self._pending_answer and self._cache:
+            elapsed = time.monotonic() - self._pending_answer["time"]
+            if elapsed >= self._auto_mark_timeout:
+                qhash = self._pending_answer["question_hash"]
+                self._pending_answer = None
+                if qhash:
+                    self._cache.mark_answered(qhash)
+                    logger.info("半自动模式超时 (%.0fs)，已自动标记 answered: %s", elapsed, qhash)
+
+        # 读取题目元素
+        question_elem = self._provider.get_question_elements()
+        if question_elem is None:
+            return
+
+        # 元素级去重（用 raw_hash 替代 pHash）
+        qhash = question_elem.raw_hash
+        if qhash == self._last_question_hash:
+            return
+
+        # 题库匹配
+        result = None
+        if self._matcher and question_elem.question_text.strip():
+            try:
+                bank_hit = self._matcher.find_best(
+                    question_elem.question_text.strip(),
+                    self._cfg.get("similarity_threshold", 0.8),
+                )
+                if bank_hit:
+                    result = RecognizeResult()
+                    result.question_text = question_elem.question_text
+                    result.answer = bank_hit["answer"]
+                    result.source = "bank"
+                    result.question_hash = qhash
+                    result.score = bank_hit["score"]
+                    result.question_type = question_elem.question_type
+                    result.answer_source = "bank"
+                    # 附加 element_ref 到 options
+                    result.options = [
+                        {"text": o.text, "element_ref": o.element_ref, "index": o.index}
+                        for o in question_elem.options
+                    ]
+            except Exception as exc:
+                logger.warning("题库匹配失败: %s", exc)
+
+        # AI 文本回答（仅 Prompt B）
+        if result is None and self._ai:
+            try:
+                prompt_b = self._ai.answer_with_text(question_elem.question_text)
+                if prompt_b and prompt_b.answer.strip():
+                    result = RecognizeResult()
+                    result.question_text = question_elem.question_text
+                    result.answer = prompt_b.answer.strip()
+                    result.source = "ai"
+                    result.question_hash = qhash
+                    result.question_type = question_elem.question_type
+                    result.confidence = prompt_b.confidence
+                    result.answer_source = prompt_b.answer_source
+                    result.options = [
+                        {"text": o.text, "element_ref": o.element_ref, "index": o.index}
+                        for o in question_elem.options
+                    ]
+                    result.input_targets = [
+                        {"placeholder": t.placeholder, "element_ref": t.element_ref}
+                        for t in question_elem.input_targets
+                    ]
+            except Exception as exc:
+                logger.warning("AI 文本回答失败: %s", exc)
+
+        if result is None:
+            self._notify_error("元素模式识别失败：题库和 AI 均无结果")
+            return
+
+        self._last_question_hash = qhash
+        self._notify_result(result)
+
+        # 点击操作
+        if self._mode == EngineMode.FULL_AUTO and self._element_clicker:
+            success = self._element_clicker.dispatch_answer(result, question_elem)
+            if success:
+                if self._cache and result.question_hash:
+                    self._cache.mark_answered(result.question_hash)
+            else:
+                self._notify_error("元素模式自动点击失败")
+        elif self._mode == EngineMode.SEMI_AUTO:
+            self._pending_answer = {
+                "question_hash": result.question_hash,
+                "time": time.monotonic(),
+            }
+        else:
             if self._cache and result.question_hash:
                 self._cache.mark_answered(result.question_hash)
 

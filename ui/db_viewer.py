@@ -2,8 +2,9 @@
 题库查看器 —— 分页浏览当前题库内容
 """
 
+import sqlite3
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 from core.db_manager import QuestionDB
 
@@ -19,19 +20,22 @@ class DBViewerDialog(tk.Toplevel):
         super().__init__(parent)
         self.title(f"题库查看 - {db_path}")
         self.geometry("800x500")
-        self.grab_set()
 
         self._db_path = db_path
-        self._db = QuestionDB(db_path)
+        self._db = None
         self._page = 1
         self._total = 0
+        self._closed = False
 
-        self._build()
-        self._load_page()
-
-        # 关闭时释放数据库（无论是用户点 X、关闭按钮，还是父窗口销毁子窗口）
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self.bind("<Destroy>", self._on_destroy)
+        try:
+            self._db = QuestionDB(db_path)
+            self._build()
+            self._load_page()
+            self.protocol("WM_DELETE_WINDOW", self._on_close)
+            self.grab_set()
+        except Exception:
+            self.destroy()
+            raise
 
     # ------------------------------------------------------------------
     # 构建界面
@@ -77,8 +81,10 @@ class DBViewerDialog(tk.Toplevel):
         bottom = tk.Frame(self)
         bottom.pack(fill=tk.X, padx=10, pady=6)
 
-        tk.Button(bottom, text="上一页", command=self._prev_page).pack(side=tk.LEFT, padx=4)
-        tk.Button(bottom, text="下一页", command=self._next_page).pack(side=tk.LEFT, padx=4)
+        self._prev_btn = tk.Button(bottom, text="上一页", command=self._prev_page)
+        self._prev_btn.pack(side=tk.LEFT, padx=4)
+        self._next_btn = tk.Button(bottom, text="下一页", command=self._next_page)
+        self._next_btn.pack(side=tk.LEFT, padx=4)
         self._page_label = tk.Label(bottom, text="")
         self._page_label.pack(side=tk.LEFT, padx=10)
         tk.Button(bottom, text="关闭", command=self._on_close).pack(side=tk.RIGHT, padx=4)
@@ -88,7 +94,12 @@ class DBViewerDialog(tk.Toplevel):
     # ------------------------------------------------------------------
 
     def _load_page(self):
-        rows, total = self._db.get_all(self._page, self.PAGE_SIZE)
+        try:
+            rows, total = self._db.get_all(self._page, self.PAGE_SIZE)
+        except sqlite3.DatabaseError as exc:
+            self._handle_db_error(exc)
+            return
+
         self._total = total
         total_pages = max(1, (total + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
 
@@ -107,6 +118,7 @@ class DBViewerDialog(tk.Toplevel):
 
         self._info_label.config(text=f"共 {total} 条记录")
         self._page_label.config(text=f"第 {self._page} / {total_pages} 页")
+        self._set_paging_enabled(True)
 
     # ------------------------------------------------------------------
     # 分页控制
@@ -124,13 +136,39 @@ class DBViewerDialog(tk.Toplevel):
             self._load_page()
 
     def _on_close(self):
-        self._db.close()
         self.destroy()
 
-    def _on_destroy(self, event=None):
-        """<Destroy> 事件：父窗口销毁时也确保数据库连接被关闭。"""
-        if self._db and self._db.conn:
+    def _handle_db_error(self, exc: Exception):
+        self._set_paging_enabled(False)
+        self._info_label.config(text="题库数据损坏")
+        self._page_label.config(text="无法分页")
+        messagebox.showerror(
+            "题库数据损坏",
+            f"题库数据损坏：{exc}\n请重新导入或修复题库文件。",
+            parent=self,
+        )
+
+    def _set_paging_enabled(self, enabled: bool):
+        state = tk.NORMAL if enabled else tk.DISABLED
+        self._prev_btn.config(state=state)
+        self._next_btn.config(state=state)
+
+    def destroy(self):
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            if self.grab_current() == self:
+                self.grab_release()
+        except tk.TclError:
+            pass
+        if self._db is not None:
             try:
                 self._db.close()
             except Exception:
                 pass
+            self._db = None
+        try:
+            super().destroy()
+        except tk.TclError:
+            pass

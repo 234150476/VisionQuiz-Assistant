@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_name": "VisionQuiz Assistant",
   "status": "active",
-  "current_milestone": "P6",
+  "current_milestone": "P7",
   "current_task_id": null,
   "milestones": [
     {
@@ -143,6 +143,36 @@
         "全自动模式题库题正确率 ≥ 95%（35/37）",
         "半自动模式题库题正确率 ≥ 95%",
         "网络题识别率正常（题干正确识别即可）"
+      ]
+    },
+    {
+      "id": "P7",
+      "name": "Phase 7: ElementProvider Architecture",
+      "description": "引入 ElementProvider 抽象层替代截图+AI视觉识别，双线并行开发 Browser（Playwright CDP）和 Windows（UI Automation）两种元素提供器，新增 4 种模式",
+      "status": "completed",
+      "phases": [7],
+      "depends_on": "P6",
+      "tasks": [
+        "ElementProvider 抽象接口定义",
+        "BrowserElementProvider 实现（Playwright CDP）",
+        "WindowsElementProvider 实现（UI Automation）",
+        "Engine ElementProvider 集成",
+        "Recognizer 元素读取策略",
+        "Clicker 元素操作适配",
+        "4 种新模式 UI 与配置",
+        "Browser 模式 E2E 测试",
+        "Windows 模式 E2E 测试",
+        "Legacy 模式兼容验证",
+        "性能基准测试",
+        "架构文档与迁移指南"
+      ],
+      "success_criteria": [
+        "ElementProvider 接口定义清晰，两种实现可独立工作",
+        "Browser 模式 Web 答题站 E2E 题库题正确率 100%",
+        "Windows 模式 UI Automation 控件读取成功率 ≥ 95%",
+        "Token 消耗新模式 vs legacy 降低 ≥ 60%",
+        "响应速度新模式 tick 延迟 ≤ 2s",
+        "Legacy 模式无回归，P1-P6 测试全部通过"
       ]
     }
   ],
@@ -458,9 +488,74 @@
       "harvested": false,
       "created_at": "2026-05-06T19:00:00+08:00",
       "completed_at": "2026-05-06T19:05:00+08:00"
+    },
+    {
+      "id": "ANL-007",
+      "type": "analyze",
+      "milestone": "P7",
+      "phase": 7,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260507-analyze-P7-element-provider",
+      "status": "completed",
+      "depends_on": null,
+      "harvested": false,
+      "created_at": "2026-05-07T10:05:00+08:00",
+      "completed_at": "2026-05-07T10:12:00+08:00"
+    },
+    {
+      "id": "PLN-007",
+      "type": "plan",
+      "milestone": "P7",
+      "phase": 7,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260507-plan-P7-element-provider",
+      "status": "completed",
+      "depends_on": "ANL-007",
+      "harvested": false,
+      "created_at": "2026-05-07T10:15:00+08:00",
+      "completed_at": "2026-05-07T10:30:00+08:00"
+    },
+    {
+      "id": "EXC-007",
+      "type": "execute",
+      "milestone": "P7",
+      "phase": 7,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260507-plan-P7-element-provider",
+      "status": "completed",
+      "depends_on": "PLN-007",
+      "harvested": false,
+      "created_at": "2026-05-07T10:30:00+08:00",
+      "completed_at": "2026-05-07T11:00:00+08:00"
+    },
+    {
+      "id": "VRF-007",
+      "type": "verify",
+      "milestone": "P7",
+      "phase": 7,
+      "scope": "phase",
+      "path": "20260507-plan-P7-element-provider",
+      "status": "completed",
+      "depends_on": "EXC-007",
+      "harvested": false,
+      "created_at": "2026-05-07T11:05:00+08:00",
+      "completed_at": "2026-05-07T11:08:00+08:00"
+    },
+    {
+      "id": "TST-007",
+      "type": "test",
+      "milestone": "P7",
+      "phase": 7,
+      "scope": "phase",
+      "path": "20260507-plan-P7-element-provider/.tests/auto-test",
+      "status": "completed",
+      "depends_on": "EXC-007",
+      "harvested": false,
+      "created_at": "2026-05-07T11:10:00+08:00",
+      "completed_at": "2026-05-07T11:15:00+08:00"
     }
   ],
-  "last_updated": "2026-05-06T19:14:00+08:00",
+  "last_updated": "2026-05-07T11:30:00+08:00",
   "last_codebase_rebuild": "2026-05-06T06:27:00+08:00",
   "accumulated_context": {
     "key_decisions": [
@@ -474,7 +569,9 @@
       "P3 scope-gap：半自动 answered=1 仍偏离 design.md §3.4，需并入本阶段实现范围",
       "P4 ProviderProfile 架构：集中 MiMo 差异（extra_body、image_transport）而非分散分支",
       "P4 Thinking 块剥离：正则预处理 _strip_thinking() 作为 _extract_json 前置步骤",
-      "P4 预设系统：MODEL_PRESETS + selected_preset 配置项，get_preset_catalog() 防变异"
+      "P4 预设系统：MODEL_PRESETS + selected_preset 配置项，get_preset_catalog() 防变异",
+      "P7 ElementProvider 架构：抽象接口 + Browser（Playwright CDP）/ Windows（UI Automation）双实现，替代截图+AI视觉识别",
+      "P7 4 种模式：full-auto-browser/windows、semi-auto-browser/windows，保留 legacy 截图模式"
     ],
     "blockers": [],
     "deferred": [

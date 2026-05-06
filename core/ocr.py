@@ -5,6 +5,7 @@ OCR 模块 —— 基于 PaddleOCR 进行本地文字识别
 
 import os
 import logging
+from enum import Enum
 from typing import Optional
 
 from core.config import get_models_dir
@@ -12,8 +13,21 @@ from core.config import get_models_dir
 logger = logging.getLogger(__name__)
 
 # PaddleOCR 懒加载实例（避免启动时过慢）
+
+
+class OCRState(Enum):
+    READY = "ready"
+    MISSING_MODEL = "missing_model"
+    INIT_FAILED = "init_failed"
+
+
 _ocr_instance = None
-_ocr_init_attempted = False  # 避免模型不存在时每次调用都重复检测
+_ocr_state: Optional[OCRState] = None
+
+
+def _has_required_files(model_path: str) -> bool:
+    required_files = ("inference.pdiparams", "inference.pdmodel")
+    return all(os.path.isfile(os.path.join(model_path, file_name)) for file_name in required_files)
 
 
 def _detect_model_dir() -> Optional[str]:
@@ -36,11 +50,21 @@ def _detect_model_dir() -> Optional[str]:
         return None
 
     # 标准模型
-    if os.path.isdir(os.path.join(base, "det")) and os.path.isdir(os.path.join(base, "rec")):
+    if (
+        os.path.isdir(os.path.join(base, "det"))
+        and os.path.isdir(os.path.join(base, "rec"))
+        and _has_required_files(os.path.join(base, "det"))
+        and _has_required_files(os.path.join(base, "rec"))
+    ):
         return base
 
     # 轻量模型（slim 子目录）
-    if os.path.isdir(os.path.join(base, "det_slim")) and os.path.isdir(os.path.join(base, "rec_slim")):
+    if (
+        os.path.isdir(os.path.join(base, "det_slim"))
+        and os.path.isdir(os.path.join(base, "rec_slim"))
+        and _has_required_files(os.path.join(base, "det_slim"))
+        and _has_required_files(os.path.join(base, "rec_slim"))
+    ):
         return base
 
     return None
@@ -92,17 +116,41 @@ def get_ocr():
     获取 PaddleOCR 单例。首次调用时自动检测模型并初始化。
     若模型不存在或初始化失败，返回 None，且不再重复尝试初始化。
     """
-    global _ocr_instance, _ocr_init_attempted
-    if _ocr_init_attempted:
+    global _ocr_instance, _ocr_state
+    if _ocr_state == OCRState.READY:
         return _ocr_instance
-
-    _ocr_init_attempted = True
-    model_dir = _detect_model_dir()
-    if model_dir is None:
-        logger.warning("未检测到 PaddleOCR 模型目录（models/），将跳过本地 OCR")
+    if _ocr_state in (OCRState.MISSING_MODEL, OCRState.INIT_FAILED):
         return None
 
-    _ocr_instance = _build_ocr(model_dir)
+    model_dir = _detect_model_dir()
+    if model_dir is None:
+        _ocr_state = OCRState.MISSING_MODEL
+        logger.warning(
+            "未检测到完整 PaddleOCR 模型目录（models/），将跳过本地 OCR",
+            extra={"ocr_state": OCRState.MISSING_MODEL.value},
+        )
+        return None
+
+    try:
+        _ocr_instance = _build_ocr(model_dir)
+    except Exception:
+        _ocr_state = OCRState.INIT_FAILED
+        logger.error(
+            "PaddleOCR 初始化失败",
+            exc_info=True,
+            extra={"ocr_state": OCRState.INIT_FAILED.value},
+        )
+        return None
+
+    if _ocr_instance is None:
+        _ocr_state = OCRState.INIT_FAILED
+        logger.error(
+            "PaddleOCR 初始化失败",
+            extra={"ocr_state": OCRState.INIT_FAILED.value},
+        )
+        return None
+
+    _ocr_state = OCRState.READY
     return _ocr_instance
 
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-项目已完成全部 6 个里程碑：稳定性基础建设（P1-P2）、功能可用性（P3）、模型接入（P4）、核心加固（P5）、答题网站与端到端测试（P6）。所有自动化测试通过，Web 答题系统运行正常。
+项目已完成全部 7 个里程碑：稳定性基础建设（P1-P2）、功能可用性（P3）、模型接入（P4）、核心加固（P5）、答题网站与端到端测试（P6）、元素直读架构（P7）。所有自动化测试通过，ElementProvider 双线实现就绪。
 
 ## Phases
 
@@ -12,6 +12,7 @@
 - [x] **Phase 4: MiMo-V2.5 Integration — 新模型接入** — 接入 Xiaomi MiMo-V2.5 多模态模型，实现模型预设配置和切换
 - [x] **Phase 5: Core Functionality Hardening — 核心功能加固** — 修复重复画面检测、引擎超时保护、识别结果过滤、HUD 截断、模型预设扩展、半自动模式修正
 - [x] **Phase 6: Quiz Website & E2E Testing — 答题网站与端到端测试** — 构建 Web 答题网站、题库抽题与题干改写、网络编撰补充题目、全自动/半自动模式端到端测试验证
+- [x] **Phase 7: ElementProvider Architecture — 元素直读架构** — 引入 ElementProvider 抽象层替代截图+AI视觉识别，双线并行开发 Browser（Playwright CDP）和 Windows（UI Automation）两种元素提供器，新增 4 种模式
 
 ## Phase Details
 
@@ -163,6 +164,62 @@
 
 ---
 
+### Phase 7: ElementProvider Architecture — 元素直读架构
+
+**Goal**: 用直接元素读取替代截图+AI视觉识别，大幅降低 Token 消耗（60-80%）、提升响应速度（4-6x）、实现确定性操作。双线并行开发 Browser 和 Windows 两种 ElementProvider。
+
+**Depends on**: Phase 1-6（引擎基础已稳固，E2E 测试已验证）
+
+**Requirements**: 架构升级 — 元素直读模式
+
+**动机**:
+- 当前每次 tick 发送 base64 截图至 AI 视觉模型（~500-1500 tokens/tick），Token 消耗巨大
+- OCR 初始化 2-5s + 推理 0.5-1s + 视觉 API 往返 = 单次 tick 3-8s
+- 像素坐标受 DPI 缩放影响，AI 视觉可能产生幻觉坐标
+- 直接读取元素文本 = 100% 准确，element.click() = 确定性操作
+
+**Tasks**:
+
+1. **ElementProvider 抽象接口** (`core/element_provider.py`) — 定义统一抽象基类 `ElementProvider`，包含：`connect()`, `disconnect()`, `get_question_elements() -> QuestionSnapshot`, `click_option(element_ref)`, `select_option(element_ref, checked)`, `fill_text(element_ref, text)`, `verify_selection(element_ref) -> bool`。定义 `QuestionSnapshot` 数据类（stem, options[], input_fields[], raw_element_tree）
+
+2. **BrowserElementProvider 实现** (`core/browser_provider.py`) — 基于 Playwright Python 实现浏览器元素提供器：CDP 连接、页面元素树遍历、题目区域定位、选项元素识别（radio/checkbox/input）、元素文本提取、元素点击/选择操作。支持 Chrome/Edge 等 Chromium 内核浏览器
+
+3. **WindowsElementProvider 实现** (`core/windows_provider.py`) — 基于 `uiautomation` 或 `comtypes` 实现 Windows UI Automation 元素提供器：控件树遍历、题目区域定位、选项元素识别（Button/CheckBox/RadioButton）、元素 Name/Value 属性提取、元素 Invoke/Select 操作
+
+4. **Engine ElementProvider 集成** (`core/engine.py`) — 重构 `_tick()` 管道，引入 `ElementTickStrategy`：当 mode 为 browser/windows 时，流程变为 `read_elements → match_question → answer → element_action`，跳过 screenshot/OCR/pHash 路径。保留 legacy 路径用于传统截图模式
+
+5. **Recognizer 元素读取策略** (`core/recognizer.py`) — 新增 `ElementRecognitionStrategy`：直接从 QuestionSnapshot 的 stem + options 文本进行题库匹配（复用现有 cache/matcher），无需 OCR 预处理。当题库无匹配时，仅发送纯文本 Prompt B（不发送图片）
+
+6. **Clicker 元素操作适配** (`core/clicker.py`) — 新增 `ElementClicker`：通过 ElementProvider 接口执行点击/选择/填写操作，验证操作结果通过元素状态属性（checked/selected/value）而非 Prompt C 截图对比
+
+7. **4 种新模式 UI** (`ui/main_window.py`, `ui/settings_dialog.py`, `core/config.py`) — 在 EngineMode 枚举中新增 `FULL_AUTO_BROWSER`, `FULL_AUTO_WINDOWS`, `SEMI_AUTO_BROWSER`, `SEMI_AUTO_WINDOWS`。设置页增加模式选择（下拉），主界面状态栏显示当前模式。browser 模式需配置浏览器调试端口，windows 模式需配置目标进程名
+
+8. **答题网站 E2E 测试（Browser 模式）** (`tests/test_e2e_browser.py`) — 启动 Web 答题站 → 浏览器打开 → VisionQuiz Browser 全自动模式 → 验证：题库题正确率 100%（元素直读无误识别）、响应速度 ≤ 2s/tick、Token 消耗降低 ≥ 60%
+
+9. **Windows 桌面程序 E2E 测试** (`tests/test_e2e_windows.py`) — 为目标 Windows 程序编写 mock 或使用简单测试程序 → VisionQuiz Windows 全自动模式 → 验证：UI Automation 控件树正确读取、元素操作成功率 ≥ 95%
+
+10. **Legacy 模式兼容验证** (`tests/test_legacy_compat.py`) — 确认传统截图模式（full-auto/semi-auto）在新架构下仍然正常工作，所有 P1-P6 测试无回归
+
+11. **性能基准测试** (`tests/test_performance_benchmark.py`) — 对比 4 种模式的性能指标：单次 tick 延迟、Token 消耗、正确率。输出 benchmark 报告
+
+12. **架构文档与迁移指南** (`docs/element-provider.md`) — 记录 ElementProvider 架构设计、两种 Provider 的接入方式、模式选择指南、故障排除
+
+**Success Criteria**:
+1. ElementProvider 接口定义清晰，两种实现可独立工作
+2. Browser 模式：Web 答题站 E2E 题库题正确率 100%
+3. Windows 模式：UI Automation 控件读取成功率 ≥ 95%
+4. Token 消耗：新模式 vs legacy 模式降低 ≥ 60%
+5. 响应速度：新模式 tick 延迟 ≤ 2s（vs legacy 3-8s）
+6. Legacy 模式无回归，P1-P6 测试全部通过
+
+**Wave 依赖**:
+- Wave 1（可并行）: Task 1 接口定义 + Task 7 模式 UI + Task 12 文档
+- Wave 2（依赖 Wave 1）: Task 2 Browser 实现 + Task 3 Windows 实现（双线并行）
+- Wave 3（依赖 Wave 2）: Task 4 Engine 集成 + Task 5 Recognizer 策略 + Task 6 Clicker 适配
+- Wave 4（依赖 Wave 3）: Task 8 Browser E2E + Task 9 Windows E2E + Task 10 Legacy 兼容 + Task 11 性能基准
+
+---
+
 ## Scope Decisions
 
 - **In scope**: 设计规范（design.md）中已确认但未实现/部分实现的 7 项功能
@@ -172,7 +229,7 @@
   - LaTeX/AST 支持（公式识别和结构化表达）
   - 学习报告导出（错题集、统计、PDF/Excel）
   - QuestionMatcher 大题库内存优化（10k+ 题索引化）
-- **Out of scope**: 跨平台支持、UI 重新设计、测试框架搭建
+- **Out of scope**: 跨平台支持（macOS/Linux）、UI 重新设计、测试框架搭建
 
 ## Progress
 
@@ -184,3 +241,4 @@
 | 4. MiMo-V2.5 Integration | Completed | 2026-05-06 |
 | 5. Core Functionality Hardening | Completed | 2026-05-06 |
 | 6. Quiz Website & E2E Testing | Completed | 2026-05-06 |
+| 7. ElementProvider Architecture | Completed | 2026-05-07 |

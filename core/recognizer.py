@@ -12,6 +12,7 @@ from core.ocr import ocr_image, is_ocr_available
 from core.cache import CacheDB
 from core.matcher import QuestionMatcher
 from core.ai_client import AIClient, PromptAResult, PromptBResult
+from core.element_provider import QuestionElement
 
 logger = logging.getLogger(__name__)
 
@@ -419,6 +420,69 @@ class Recognizer:
                 if ocr_quality == "poor":
                     result.recognition_source = "vision_preferred"
                 return result
+
+        return None
+
+    def recognize_from_elements(self, question_elem: QuestionElement) -> Optional[RecognizeResult]:
+        """
+        元素模式识别：直接从 QuestionElement 的文本进行题库匹配和 AI 文本回答。
+
+        不调用 answer_with_image（Prompt A），仅使用 answer_with_text（Prompt B）。
+        返回的 RecognizeResult.options 携带 element_ref 字段。
+        """
+        text = question_elem.question_text.strip()
+        if not text:
+            return None
+
+        question_hash = question_elem.raw_hash or compute_question_hash(text)
+
+        # 1. 题库匹配（复用 _try_bank_match）
+        bank_result = self._try_bank_match(text, question_hash)
+        if bank_result:
+            bank_result.question_type = question_elem.question_type
+            bank_result.options = [
+                {"text": o.text, "element_ref": o.element_ref, "index": o.index}
+                for o in question_elem.options
+            ]
+            return bank_result
+
+        # 2. AI 文本回答（仅 Prompt B）
+        if self._ai is None:
+            logger.warning("AI 客户端未配置，元素模式无法回退到 AI")
+            return None
+
+        try:
+            prompt_b = self._ai.answer_with_text(text)
+            if prompt_b and prompt_b.answer.strip():
+                result = self._build_result(
+                    answer=prompt_b.answer.strip(),
+                    source="ai",
+                    question_text=text,
+                    question_hash=question_hash,
+                    question_type=question_elem.question_type or "single",
+                    confidence=prompt_b.confidence,
+                    recognition_source="text",
+                    answer_source=prompt_b.answer_source,
+                )
+                result.options = [
+                    {"text": o.text, "element_ref": o.element_ref, "index": o.index}
+                    for o in question_elem.options
+                ]
+                result.input_targets = [
+                    {"placeholder": t.placeholder, "element_ref": t.element_ref}
+                    for t in question_elem.input_targets
+                ]
+
+                # 写缓存
+                try:
+                    if result.answer and result.question_hash:
+                        self._cache.insert(result.question_hash, "", result.answer, "ai")
+                except Exception as exc:
+                    logger.warning("AI 结果写缓存失败: %s", exc)
+
+                return result
+        except Exception as exc:
+            logger.warning("AI 文本回答失败: %s", exc)
 
         return None
 

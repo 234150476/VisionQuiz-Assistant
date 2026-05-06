@@ -152,6 +152,11 @@ CONFIG_DEFAULTS = {
     "phash_threshold": 8,
     "recognition_timeout": 45,
     "auto_mark_timeout": 10,
+    # P7: ElementProvider 模式配置
+    "input_mode": "screenshot",       # screenshot | browser | windows
+    "browser_debug_port": 9222,       # Chrome CDP 调试端口
+    "browser_selector_config": "",    # 外部 JSON 选择器配置文件路径（可选）
+    "windows_target_title": "",       # 目标窗口标题（模糊匹配）
 }
 
 
