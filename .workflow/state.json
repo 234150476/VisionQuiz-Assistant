@@ -1,0 +1,311 @@
+{
+  "version": "2.0",
+  "project_name": "VisionQuiz Assistant",
+  "status": "active",
+  "current_milestone": "P4",
+  "current_task_id": null,
+  "milestones": [
+    {
+      "id": "P1",
+      "name": "Phase 1: Core Stability",
+      "description": "修复 engine/recognizer/cache/ai_client/ocr/screenshot 的异常处理、资源管理和容错机制",
+      "status": "completed",
+      "phases": [1],
+      "tasks": [
+        "Engine 线程安全与异常容错",
+        "Recognizer 多策略管道容错",
+        "AIClient 网络容错与重试",
+        "CacheDB 连接管理与线程安全",
+        "OCR/Screenshot 模块容错"
+      ],
+      "success_criteria": [
+        "AI API 调用失败时引擎不会卡死，继续下一轮截图循环",
+        "OCR 模型不存在时程序正常运行（单轨 AI Vision 模式）",
+        "引擎 stop() 在任何状态下都能在 5 秒内完成，不留孤儿线程",
+        "缓存数据库连接在任何异常路径下都不会泄漏"
+      ]
+    },
+    {
+      "id": "P2",
+      "name": "Phase 2: UI Stability",
+      "description": "修复主线程阻塞、窗口竞态、错误展示和优雅关闭",
+      "status": "completed",
+      "phases": [2],
+      "depends_on": "P1",
+      "tasks": [
+        "MainWindow 停止流程优化",
+        "关窗竞态修复",
+        "HUD 错误展示与恢复",
+        "SettingsDialog/DBViewer 异常处理",
+        "跨模块错误传播链"
+      ],
+      "success_criteria": [
+        "引擎停止时 UI 主线程不冻结，按钮即时响应",
+        "关闭窗口时不会出现 \"应用程序未响应\" 或残留进程",
+        "所有运行时错误在 HUD 上有清晰的用户提示（非 Python traceback）",
+        "配置/题库文件损坏时给出友好提示而非崩溃"
+      ]
+    },
+    {
+      "id": "P3",
+      "name": "Phase 3: Functional Usability",
+      "description": "补齐设计规范中的功能差距，使核心答题流程完整可用",
+      "status": "completed",
+      "phases": [3],
+      "depends_on": "P2",
+      "tasks": [
+        "AI 提示词结构化改造",
+        "全自动答题流程补全",
+        "HUD 单行紧凑布局",
+        "题库目录自动扫描",
+        "OCR 文本预处理",
+        "启动按钮状态逻辑",
+        "配置管理清理"
+      ],
+      "success_criteria": [
+        "全自动模式下填空题/简答题可自动输入文字内容",
+        "AI 识别返回结构化 JSON（含题型、选项坐标、置信度）",
+        "HUD 显示为单行紧凑格式，题目截断长度自适应屏幕宽度",
+        "启动时 db/ 目录下所有 .db 文件自动出现在下拉列表中",
+        "启动按钮在配置不完整时显示明确的文字提示并禁用"
+      ]
+    },
+    {
+      "id": "P4",
+      "name": "Phase 4: MiMo-V2.5 Integration",
+      "description": "接入 Xiaomi MiMo-V2.5 多模态模型，实现模型预设配置和切换",
+      "status": "pending",
+      "phases": [4],
+      "depends_on": "P3",
+      "tasks": [
+        "MiMo API 兼容性验证",
+        "模型预设配置系统",
+        "图片编码适配",
+        "响应格式适配",
+        "模型切换 UI",
+        "基准测试框架",
+        "文档和配置更新"
+      ],
+      "success_criteria": [
+        "用户可在设置中一键选择 MiMo-V2.5 预设",
+        "MiMo-V2.5 结构化 JSON 解析成功率 ≥ 90%",
+        "模型切换不影响已有功能",
+        "基准测试可重复运行"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "ANL-001",
+      "type": "analyze",
+      "milestone": "P1",
+      "phase": 1,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-analyze-phase-1-core-stability",
+      "status": "completed",
+      "depends_on": null,
+      "harvested": false,
+      "created_at": "2026-05-06T07:48:00+08:00",
+      "completed_at": "2026-05-06T07:48:00+08:00"
+    },
+    {
+      "id": "PLN-001",
+      "type": "plan",
+      "milestone": "P1",
+      "phase": 1,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P1-core-stability",
+      "status": "completed",
+      "depends_on": "ANL-001",
+      "harvested": false,
+      "created_at": "2026-05-06T07:50:00+08:00",
+      "completed_at": "2026-05-06T07:52:00+08:00"
+    },
+    {
+      "id": "EXE-001",
+      "type": "execute",
+      "milestone": "P1",
+      "phase": 1,
+      "scope": "phase",
+      "path": "20260506-execute-P1-core-stability",
+      "status": "completed",
+      "depends_on": "PLN-001",
+      "harvested": false,
+      "created_at": "2026-05-06T07:53:00+08:00",
+      "completed_at": "2026-05-06T08:30:00+08:00"
+    },
+    {
+      "id": "VRF-001",
+      "type": "verify",
+      "milestone": "P1",
+      "phase": 1,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P1-core-stability",
+      "status": "completed",
+      "depends_on": "EXE-001",
+      "harvested": false,
+      "created_at": "2026-05-06T08:31:00+08:00",
+      "completed_at": "2026-05-06T08:35:00+08:00"
+    },
+    {
+      "id": "ANL-002",
+      "type": "analyze",
+      "milestone": "P2",
+      "phase": 2,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-analyze-phase-2-ui-stability",
+      "status": "completed",
+      "depends_on": null,
+      "harvested": false,
+      "created_at": "2026-05-06T08:26:30+08:00",
+      "completed_at": "2026-05-06T08:26:30+08:00"
+    },
+    {
+      "id": "PLN-002",
+      "type": "plan",
+      "milestone": "P2",
+      "phase": 2,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P2-ui-stability",
+      "status": "completed",
+      "depends_on": "ANL-002",
+      "harvested": false,
+      "created_at": "2026-05-06T07:48:00+08:00",
+      "completed_at": "2026-05-06T07:50:00+08:00"
+    },
+    {
+      "id": "EXE-002",
+      "type": "execute",
+      "milestone": "P2",
+      "phase": 2,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-execute-P2-ui-stability",
+      "status": "completed",
+      "depends_on": "PLN-002",
+      "harvested": false,
+      "created_at": "2026-05-06T08:00:52+08:00",
+      "completed_at": "2026-05-06T08:00:52+08:00"
+    },
+    {
+      "id": "VRF-002",
+      "type": "verify",
+      "milestone": "P2",
+      "phase": 2,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P2-ui-stability",
+      "status": "completed",
+      "depends_on": "EXE-002",
+      "harvested": false,
+      "created_at": "2026-05-06T08:15:00+08:00",
+      "completed_at": "2026-05-06T08:15:00+08:00"
+    },
+    {
+      "id": "ANL-003",
+      "type": "analyze",
+      "milestone": "P3",
+      "phase": 3,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-analyze-phase-3-functional-usability",
+      "status": "completed",
+      "depends_on": null,
+      "harvested": false,
+      "created_at": "2026-05-06T09:28:34+08:00",
+      "completed_at": "2026-05-06T09:28:34+08:00"
+    },
+    {
+      "id": "PLN-003",
+      "type": "plan",
+      "milestone": "P3",
+      "phase": 3,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P3-functional-usability",
+      "status": "completed",
+      "depends_on": "ANL-003",
+      "harvested": false,
+      "created_at": "2026-05-06T10:40:00+08:00",
+      "completed_at": "2026-05-06T10:40:00+08:00"
+    },
+    {
+      "id": "EXC-003",
+      "type": "execute",
+      "milestone": "P3",
+      "phase": 3,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P3-functional-usability",
+      "status": "completed",
+      "depends_on": "PLN-003",
+      "harvested": false,
+      "created_at": "2026-05-06T10:41:00+08:00",
+      "completed_at": "2026-05-06T11:30:00+08:00"
+    },
+    {
+      "id": "VRF-003",
+      "type": "verify",
+      "milestone": "P3",
+      "phase": 3,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P3-functional-usability",
+      "status": "completed",
+      "depends_on": "EXC-003",
+      "harvested": false,
+      "created_at": "2026-05-06T11:31:00+08:00",
+      "completed_at": "2026-05-06T11:35:00+08:00"
+    },
+    {
+      "id": "TST-003",
+      "type": "test",
+      "milestone": "P3",
+      "phase": 3,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-auto-test-P3-functional-usability",
+      "status": "completed",
+      "depends_on": "VRF-003",
+      "harvested": false,
+      "created_at": "2026-05-06T11:38:00+08:00",
+      "completed_at": "2026-05-06T12:05:00+08:00"
+    }
+  ],
+  "last_updated": "2026-05-06T12:05:00+08:00",
+  "last_codebase_rebuild": "2026-05-06T06:27:00+08:00",
+  "accumulated_context": {
+    "key_decisions": [
+      "聚焦稳定性优先，功能迭代前先夯实基础",
+      "2 Phase: Core Stability → UI Stability（runtime dependency）",
+      "12/14 组件覆盖（config.py + db_viewer.py 合并到 P2 Task 4）",
+      "P3 功能可用性：1 Phase + Wave DAG（7 任务无硬依赖边界）",
+      "AI JSON 提示词改造作为 Task 1，是全自动答题的前提",
+      "P3 contract-first：Task 1 的 Prompt A/B/C JSON schema 是 Task 2 全自动路由的硬依赖",
+      "P3 startup-readiness：Task 4 题库扫描 + Task 7 配置清理共同决定 Task 6 启动按钮状态",
+      "P3 scope-gap：半自动 answered=1 仍偏离 design.md §3.4，需并入本阶段实现范围"
+    ],
+    "blockers": [],
+    "deferred": [
+      "MiMo-V2.5 接入",
+      "试卷批量解析",
+      "多轮对话",
+      "LaTeX/AST 支持",
+      "学习报告导出"
+    ]
+  },
+  "transition_history": [],
+  "milestone_history": [
+    {
+      "milestone": "P1",
+      "name": "Phase 1: Core Stability",
+      "completed_at": "2026-05-06T08:35:00+08:00",
+      "summary": "Engine 线程安全、AIClient 网络容错、CacheDB 连接管理、OCR/Screenshot 容错"
+    },
+    {
+      "milestone": "P2",
+      "name": "Phase 2: UI Stability",
+      "completed_at": "2026-05-06T08:15:00+08:00",
+      "summary": "MainWindow 停止流程、关窗竞态修复、HUD 错误展示、SettingsDialog/DBViewer 异常处理"
+    },
+    {
+      "milestone": "P3",
+      "name": "Phase 3: Functional Usability",
+      "completed_at": "2026-05-06T12:14:00+08:00",
+      "summary": "AI JSON 提示词改造、全自动答题路由、HUD 单行布局、题库自动扫描、启动按钮状态逻辑、OCR 预处理、DPAPI 加密配置"
+    }
+  ]
+}
