@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 # 默认选择器配置
 _DEFAULT_SELECTORS = {
-    "question_text": ".question-text, #stem, .stem, .topic-text, [class*='question']",
-    "option": ".option-item, .answer-choice, [class*='option'], label:has(input[type='radio']), label:has(input[type='checkbox'])",
+    "question_text": ".question-text, #qStem, #stem, .stem, .topic-text, [class*='question']:not([class*='header']):not([class*='number'])",
+    "option": ".option-item, .answer-choice, .option:not(.options), [class*='option']:not([class*='options']), label:has(input[type='radio']), label:has(input[type='checkbox'])",
     "option_selected": ".selected, .active, [aria-selected='true'], input:checked",
     "input_field": "input.answer-input, textarea, input[type='text']",
     "judge_option": ".judge-option, [class*='judge'], [class*='true-false']",
@@ -205,10 +205,10 @@ class BrowserElementProvider(ElementProvider):
 
     def _extract_question_text(self) -> str:
         """提取题干文本。"""
-        sel = self._selectors["question_text"]
+        sel = json.dumps(self._selectors["question_text"])
         js = f"""
         (() => {{
-            const el = document.querySelector('{sel}');
+            const el = document.querySelector({sel});
             return el ? el.innerText.trim() : '';
         }})()
         """
@@ -217,16 +217,16 @@ class BrowserElementProvider(ElementProvider):
 
     def _extract_options(self) -> list[OptionElement]:
         """提取所有选项元素。"""
-        sel = self._selectors["option"]
-        sel_selected = self._selectors.get("option_selected", ".selected")
+        sel = json.dumps(self._selectors["option"])
+        sel_selected = json.dumps(self._selectors.get("option_selected", ".selected"))
         js = f"""
         (() => {{
-            const els = document.querySelectorAll('{sel}');
+            const els = document.querySelectorAll({sel});
             const results = [];
             els.forEach((el, i) => {{
                 const text = el.innerText.trim();
                 if (!text) return;
-                const selected = el.matches('{sel_selected}') ||
+                const selected = el.matches({sel_selected}) ||
                     el.querySelector('input:checked') !== null;
                 results.push({{text, index: i, selected}});
             }});
@@ -254,10 +254,10 @@ class BrowserElementProvider(ElementProvider):
 
     def _extract_input_targets(self) -> list[InputTarget]:
         """提取输入框元素。"""
-        sel = self._selectors["input_field"]
+        sel = json.dumps(self._selectors["input_field"])
         js = f"""
         (() => {{
-            const els = document.querySelectorAll('{sel}');
+            const els = document.querySelectorAll({sel});
             const results = [];
             els.forEach((el, i) => {{
                 results.push({{
@@ -325,11 +325,11 @@ class BrowserElementProvider(ElementProvider):
         if not self._ensure_connected():
             return False
 
-        sel = self._selectors["option"]
+        sel = json.dumps(self._selectors["option"])
         idx = option.element_ref if isinstance(option.element_ref, int) else option.index
         js = f"""
         (() => {{
-            const els = document.querySelectorAll('{sel}');
+            const els = document.querySelectorAll({sel});
             const el = els[{idx}];
             if (!el) return false;
             el.scrollIntoView({{behavior: 'smooth', block: 'center'}});
@@ -353,13 +353,13 @@ class BrowserElementProvider(ElementProvider):
         if not self._ensure_connected():
             return False
 
-        sel = self._selectors["input_field"]
+        sel = json.dumps(self._selectors["input_field"])
         idx = target.element_ref if isinstance(target.element_ref, int) else 0
         # 转义文本中的特殊字符
         escaped_text = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")
         js = f"""
         (() => {{
-            const els = document.querySelectorAll('{sel}');
+            const els = document.querySelectorAll({sel});
             const el = els[{idx}];
             if (!el) return false;
             el.scrollIntoView({{behavior: 'smooth', block: 'center'}});
@@ -383,15 +383,15 @@ class BrowserElementProvider(ElementProvider):
         if not self._ensure_connected():
             return False
 
-        sel = self._selectors["option"]
-        sel_selected = self._selectors.get("option_selected", ".selected")
+        sel = json.dumps(self._selectors["option"])
+        sel_selected = json.dumps(self._selectors.get("option_selected", ".selected"))
         idx = option.element_ref if isinstance(option.element_ref, int) else option.index
         js = f"""
         (() => {{
-            const els = document.querySelectorAll('{sel}');
+            const els = document.querySelectorAll({sel});
             const el = els[{idx}];
             if (!el) return false;
-            return el.matches('{sel_selected}') ||
+            return el.matches({sel_selected}) ||
                 el.querySelector('input:checked') !== null;
         }})()
         """

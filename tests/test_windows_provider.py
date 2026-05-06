@@ -24,6 +24,13 @@ class WindowsProviderConnectTests(unittest.TestCase):
     @patch("core.windows_provider.auto")
     def test_connect_success(self, mock_auto):
         from core.windows_provider import WindowsElementProvider
+        # 模拟手动窗口搜索：GetRootControl → children iteration → WindowControl
+        mock_child = MagicMock()
+        mock_child.Name = "My Quiz App"
+        mock_root = MagicMock()
+        mock_root.GetChildren.return_value = [mock_child]
+        mock_auto.GetRootControl.return_value = mock_root
+
         mock_window = MagicMock()
         mock_window.Exists.return_value = True
         mock_window.Name = "My Quiz App"
@@ -34,14 +41,15 @@ class WindowsProviderConnectTests(unittest.TestCase):
 
         self.assertTrue(result)
         self.assertTrue(p._connected)
+        mock_auto.GetRootControl.assert_called_once()
         mock_auto.WindowControl.assert_called_once()
 
     @patch("core.windows_provider.auto")
     def test_connect_window_not_found(self, mock_auto):
         from core.windows_provider import WindowsElementProvider
-        mock_window = MagicMock()
-        mock_window.Exists.return_value = False
-        mock_auto.WindowControl.return_value = mock_window
+        mock_root = MagicMock()
+        mock_root.GetChildren.return_value = []  # 没有匹配窗口
+        mock_auto.GetRootControl.return_value = mock_root
 
         p = WindowsElementProvider(target_title="Nonexistent")
         result = p.connect()

@@ -61,19 +61,27 @@ class WindowsElementProvider(ElementProvider):
             return False
 
         try:
-            # 模糊匹配窗口标题
-            window = auto.WindowControl(
-                searchDepth=1,
-                Name=f"(?i).*{re.escape(title)}.*",
-                RegexName=True,
-            )
-            if not window.Exists(maxSearchSeconds=3):
+            # 遍历顶级窗口做模糊匹配（RegexName 不支持中文）
+            pattern = re.compile(re.escape(title), re.IGNORECASE)
+            root = auto.GetRootControl()
+            exact_name = None
+            for child in root.GetChildren():
+                if child.Name and pattern.search(child.Name):
+                    exact_name = child.Name
+                    break
+
+            if not exact_name:
                 logger.warning("未找到匹配窗口: %s", title)
+                return False
+
+            window = auto.WindowControl(searchDepth=1, Name=exact_name)
+            if not window.Exists(maxSearchSeconds=2):
+                logger.warning("窗口引用失效: %s", exact_name)
                 return False
 
             self._window = window
             self._connected = True
-            logger.info("已连接窗口: %s", window.Name)
+            logger.info("已连接窗口: %s", exact_name)
             return True
         except Exception as exc:
             logger.warning("窗口连接失败: %s", exc)
