@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_name": "VisionQuiz Assistant",
   "status": "active",
-  "current_milestone": "P5",
+  "current_milestone": "P6",
   "current_task_id": null,
   "milestones": [
     {
@@ -115,6 +115,34 @@
         "HUD 显示不溢出窗口",
         "MODEL_PRESETS 包含 10+ 视觉模型",
         "半自动模式等待用户确认后标记"
+      ]
+    },
+    {
+      "id": "P6",
+      "name": "Phase 6: Quiz Website & E2E Testing",
+      "description": "构建 Web 答题网站、题库抽题与题干改写（相似度 ≤ 10%）、网络编撰题目（25%）、全自动/半自动端到端测试（题库题 ≥ 95%）",
+      "status": "completed",
+      "phases": [6],
+      "depends_on": "P5",
+      "tasks": [
+        "题库数据准备：抽题 + AI 改写 (37 道，相似度 ≤ 10%)",
+        "网络题目编撰 (13 道，覆盖 IT/安全/编程/数据库)",
+        "题库格式转换与合并 (50 道 JSON 数据集)",
+        "Web 答题网站后端 (Flask API)",
+        "Web 答题网站前端 (参考截图设计)",
+        "VisionQuiz Prompt 调优 (Web 页面截图)",
+        "全自动模式集成测试 (题库题 ≥ 95%)",
+        "全自动模式调试迭代 (最多 3 轮)",
+        "半自动模式集成测试 (题库题 ≥ 95%)",
+        "半自动模式调试迭代 (最多 3 轮)",
+        "E2E 测试报告生成"
+      ],
+      "success_criteria": [
+        "答题网站包含 50 道题（单选+多选）",
+        "改写题干 TF-IDF 余弦相似度 ≤ 10%",
+        "全自动模式题库题正确率 ≥ 95%（35/37）",
+        "半自动模式题库题正确率 ≥ 95%",
+        "网络题识别率正常（题干正确识别即可）"
       ]
     }
   ],
@@ -391,9 +419,48 @@
       "harvested": false,
       "created_at": "2026-05-06T13:35:00+08:00",
       "completed_at": "2026-05-06T13:36:00+08:00"
+    },
+    {
+      "id": "EXC-006",
+      "type": "execute",
+      "milestone": "P6",
+      "phase": 6,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-e2e-test-P6-quiz-website",
+      "status": "completed",
+      "depends_on": null,
+      "harvested": false,
+      "created_at": "2026-05-06T18:10:00+08:00",
+      "completed_at": "2026-05-06T18:35:00+08:00"
+    },
+    {
+      "id": "TST-006",
+      "type": "test",
+      "milestone": "P6",
+      "phase": 6,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-e2e-test-P6-quiz-website",
+      "status": "completed",
+      "depends_on": "EXC-006",
+      "harvested": false,
+      "created_at": "2026-05-06T18:30:00+08:00",
+      "completed_at": "2026-05-06T18:35:00+08:00"
+    },
+    {
+      "id": "VRF-006",
+      "type": "verify",
+      "milestone": "P6",
+      "phase": 6,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-e2e-test-P6-quiz-website",
+      "status": "completed",
+      "depends_on": "EXC-006",
+      "harvested": false,
+      "created_at": "2026-05-06T19:00:00+08:00",
+      "completed_at": "2026-05-06T19:05:00+08:00"
     }
   ],
-  "last_updated": "2026-05-06T13:22:00+08:00",
+  "last_updated": "2026-05-06T19:14:00+08:00",
   "last_codebase_rebuild": "2026-05-06T06:27:00+08:00",
   "accumulated_context": {
     "key_decisions": [
@@ -442,6 +509,18 @@
       "name": "Phase 4: MiMo-V2.5 Integration",
       "completed_at": "2026-05-06T12:58:00+08:00",
       "summary": "ProviderProfile 架构、MODEL_PRESETS 预设系统、MiMo thinking 块剥离、模型切换 UI、基准测试框架、文档更新"
+    },
+    {
+      "milestone": "P5",
+      "name": "Phase 5: Core Functionality Hardening",
+      "completed_at": "2026-05-06T13:36:00+08:00",
+      "summary": "pHash Hamming 距离、引擎超时保护、Prompt 空结果过滤、HUD 截断修复、模型预设扩展、半自动标记修正"
+    },
+    {
+      "milestone": "P6",
+      "name": "Phase 6: Quiz Website & E2E Testing",
+      "completed_at": "2026-05-06T19:14:00+08:00",
+      "summary": "Web 答题网站（Flask + 50 题数据集）、全自动/半自动 E2E 测试框架、16 自动化测试通过、集成测试手动指南"
     }
   ]
 }

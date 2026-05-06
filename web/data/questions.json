@@ -1,0 +1,402 @@
+[
+  {
+    "id": 1,
+    "type": "single",
+    "stem": "当操作系统内核接收到中断信号时，下列哪个寄存器首先被自动压入系统栈？",
+    "options": {"A": "通用寄存器 EAX", "B": "程序计数器 EIP 与标志寄存器 EFLAGS", "C": "段选择子 CS", "D": "浮点状态寄存器"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 2,
+    "type": "single",
+    "stem": "在 TCP/IP 四层体系中，负责端到端可靠传输的协议层是哪一层？",
+    "options": {"A": "网络接口层", "B": "网际层", "C": "传输层", "D": "应用层"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 3,
+    "type": "single",
+    "stem": "关系数据库中，用于消除查询结果中重复行的关键字是什么？",
+    "options": {"A": "UNIQUE", "B": "DISTINCT", "C": "GROUP BY", "D": "ORDER BY"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 4,
+    "type": "single",
+    "stem": "面向对象设计中，子类自动获取父类属性和方法的机制被称为什么？",
+    "options": {"A": "封装", "B": "多态", "C": "继承", "D": "抽象"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 5,
+    "type": "single",
+    "stem": "在 HTTP 协议中，服务端返回状态码 304 表示什么含义？",
+    "options": {"A": "请求资源已被永久移除", "B": "资源未修改可使用缓存", "C": "服务器内部处理错误", "D": "客户端请求格式有误"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 6,
+    "type": "single",
+    "stem": "以下哪种数据结构最适合实现先进先出（FIFO）的任务调度队列？",
+    "options": {"A": "二叉搜索树", "B": "双向链表", "C": "循环队列", "D": "哈希表"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 7,
+    "type": "single",
+    "stem": "在 Linux 系统中，查看当前网络连接状态和端口监听情况的命令是哪个？",
+    "options": {"A": "ifconfig", "B": "netstat 或 ss", "C": "ping", "D": "traceroute"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 8,
+    "type": "single",
+    "stem": "根据 OSI 七层模型，交换机主要工作在哪个层次上？",
+    "options": {"A": "物理层", "B": "数据链路层", "C": "网络层", "D": "传输层"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 9,
+    "type": "single",
+    "stem": "SQL 中用于限制查询返回行数的关键字是哪个？",
+    "options": {"A": "TOP", "B": "LIMIT", "C": "ROWNUM", "D": "FETCH FIRST"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 10,
+    "type": "single",
+    "stem": "在进程调度算法中，哪种策略会让等待时间最长的进程优先获得 CPU？",
+    "options": {"A": "时间片轮转", "B": "短作业优先", "C": "先来先服务", "D": "优先级调度"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 11,
+    "type": "single",
+    "stem": "密码学中，SHA-256 算法生成的消息摘要长度是多少比特？",
+    "options": {"A": "128", "B": "160", "C": "256", "D": "512"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 12,
+    "type": "single",
+    "stem": "Git 版本控制系统中，用于查看提交历史记录的命令是哪个？",
+    "options": {"A": "git status", "B": "git log", "C": "git diff", "D": "git show"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 13,
+    "type": "single",
+    "stem": "在 IPv4 地址方案中，C 类网络默认的子网掩码是什么？",
+    "options": {"A": "255.0.0.0", "B": "255.255.0.0", "C": "255.255.255.0", "D": "255.255.255.255"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 14,
+    "type": "single",
+    "stem": "以下哪种排序算法在最坏情况下仍能保持 O(n log n) 的时间复杂度？",
+    "options": {"A": "快速排序", "B": "归并排序", "C": "冒泡排序", "D": "选择排序"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 15,
+    "type": "single",
+    "stem": "数据库事务的 ACID 特性中，A 代表的是什么概念？",
+    "options": {"A": "可用性（Availability）", "B": "原子性（Atomicity）", "C": "一致性（Consistency）", "D": "隔离性（Isolation）"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 16,
+    "type": "single",
+    "stem": "在 Web 应用中，为防止跨站请求伪造攻击通常采用什么防护手段？",
+    "options": {"A": "Content-Security-Policy 响应头", "B": "在表单中嵌入 CSRF Token", "C": "对用户输入进行 HTML 转义", "D": "使用 HTTPS 加密传输"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 17,
+    "type": "single",
+    "stem": "Docker 容器技术中，用于定义镜像构建步骤的文件叫什么名字？",
+    "options": {"A": "docker-compose.yml", "B": "Dockerfile", "C": "docker.cfg", "D": "image.json"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 18,
+    "type": "single",
+    "stem": "Python 中，当使用 open() 函数以 'w' 模式打开已存在的文件时会发生什么？",
+    "options": {"A": "追加写入到文件末尾", "B": "清空文件内容后重新写入", "C": "抛出文件已存在的异常", "D": "以只读模式打开"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 19,
+    "type": "single",
+    "stem": "RESTful API 设计中，用于创建新资源的 HTTP 方法应该是哪个？",
+    "options": {"A": "GET", "B": "POST", "C": "PUT", "D": "DELETE"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 20,
+    "type": "single",
+    "stem": "在内存管理中，当物理内存不足时操作系统将部分页面换出到磁盘的技术叫做什么？",
+    "options": {"A": "内存碎片整理", "B": "虚拟内存页面置换", "C": "堆栈溢出保护", "D": "内存映射文件"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 21,
+    "type": "single",
+    "stem": "DNS 服务器的主要功能是什么？",
+    "options": {"A": "分配 IP 地址给客户端", "B": "将域名解析为 IP 地址", "C": "过滤网络恶意流量", "D": "提供文件传输服务"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 22,
+    "type": "single",
+    "stem": "在 Python 异常处理中，无论是否发生异常都会执行的代码块用什么关键字定义？",
+    "options": {"A": "except", "B": "else", "C": "finally", "D": "raise"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 23,
+    "type": "single",
+    "stem": "以下哪个协议使用 UDP 而非 TCP 作为传输层协议？",
+    "options": {"A": "HTTP", "B": "FTP", "C": "DNS（查询）", "D": "SMTP"},
+    "correct_answer": "C",
+    "source": "db"
+  },
+  {
+    "id": 24,
+    "type": "single",
+    "stem": "在 SQL 注入攻击中，攻击者利用的是什么层面的安全缺陷？",
+    "options": {"A": "操作系统内核漏洞", "B": "应用程序未正确过滤用户输入", "C": "网络传输未加密", "D": "数据库软件本身的 Bug"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 25,
+    "type": "single",
+    "stem": "微服务架构中，用于实现服务间同步通信的常见协议是什么？",
+    "options": {"A": "消息队列（MQ）", "B": "gRPC 或 HTTP REST", "C": "共享数据库", "D": "文件系统共享"},
+    "correct_answer": "B",
+    "source": "db"
+  },
+  {
+    "id": 26,
+    "type": "multi",
+    "stem": "以下哪些属于 TCP 协议三次握手过程中涉及的标志位？",
+    "options": {"A": "SYN", "B": "ACK", "C": "FIN", "D": "RST"},
+    "correct_answer": "A|答案分隔|B",
+    "source": "db"
+  },
+  {
+    "id": 27,
+    "type": "multi",
+    "stem": "在 Linux 文件系统中，以下哪些命令可以用于查看文件内容？",
+    "options": {"A": "cat", "B": "less", "C": "chmod", "D": "head"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 28,
+    "type": "multi",
+    "stem": "以下哪些是合法的 Python 数据类型？",
+    "options": {"A": "list", "B": "tuple", "C": "array", "D": "dict"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 29,
+    "type": "multi",
+    "stem": "关系数据库中，索引可以带来哪些好处？",
+    "options": {"A": "加快数据检索速度", "B": "保证数据唯一性", "C": "减少磁盘空间占用", "D": "加速表连接操作"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 30,
+    "type": "multi",
+    "stem": "以下哪些属于常见的 Web 前端安全威胁？",
+    "options": {"A": "跨站脚本攻击（XSS）", "B": "SQL 注入", "C": "跨站请求伪造（CSRF）", "D": "点击劫持"},
+    "correct_answer": "A|答案分隔|C|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 31,
+    "type": "multi",
+    "stem": "以下哪些是 Docker 的核心组成部分？",
+    "options": {"A": "镜像（Image）", "B": "容器（Container）", "C": "虚拟机（VM）", "D": "仓库（Registry）"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 32,
+    "type": "multi",
+    "stem": "在面向对象编程中，以下哪些属于 SOLID 设计原则？",
+    "options": {"A": "单一职责原则", "B": "开闭原则", "C": "迪米特法则", "D": "里氏替换原则"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 33,
+    "type": "multi",
+    "stem": "以下哪些是 Python 中的不可变数据类型？",
+    "options": {"A": "str", "B": "int", "C": "list", "D": "tuple"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 34,
+    "type": "multi",
+    "stem": "HTTPS 相比 HTTP 增加了哪些安全特性？",
+    "options": {"A": "数据传输加密", "B": "服务器身份验证", "C": "数据完整性校验", "D": "请求速度提升"},
+    "correct_answer": "A|答案分隔|B|答案分隔|C",
+    "source": "db"
+  },
+  {
+    "id": 35,
+    "type": "multi",
+    "stem": "以下哪些是关系数据库管理系统（RDBMS）？",
+    "options": {"A": "MySQL", "B": "MongoDB", "C": "PostgreSQL", "D": "SQLite"},
+    "correct_answer": "A|答案分隔|C|答案分隔|D",
+    "source": "db"
+  },
+  {
+    "id": 36,
+    "type": "multi",
+    "stem": "软件开发生命周期（SDLC）中，典型的阶段包括以下哪些？",
+    "options": {"A": "需求分析", "B": "系统设计", "C": "编码实现", "D": "市场推广"},
+    "correct_answer": "A|答案分隔|B|答案分隔|C",
+    "source": "db"
+  },
+  {
+    "id": 37,
+    "type": "multi",
+    "stem": "以下哪些操作可以在 SQL 的 UPDATE 语句中使用 WHERE 子句配合？",
+    "options": {"A": "等值比较 =", "B": "范围比较 BETWEEN", "C": "模式匹配 LIKE", "D": "排序 ORDER BY"},
+    "correct_answer": "A|答案分隔|B|答案分隔|C",
+    "source": "db"
+  },
+  {
+    "id": 38,
+    "type": "single",
+    "stem": "在 Kubernetes 编排系统中，最小的可部署计算单元叫什么？",
+    "options": {"A": "Container", "B": "Pod", "C": "Node", "D": "Service"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 39,
+    "type": "single",
+    "stem": "OAuth 2.0 授权流程中，第三方应用获取用户资源访问权时使用的凭证叫什么？",
+    "options": {"A": "Session Cookie", "B": "Access Token", "C": "SSH Key", "D": "SSL Certificate"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 40,
+    "type": "single",
+    "stem": "Redis 数据库中，用于实现发布/订阅消息模式的命令前缀是什么？",
+    "options": {"A": "GET/SET", "B": "PUB/SUB", "C": "PUSH/POP", "D": "LPUSH/RPUSH"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 41,
+    "type": "single",
+    "stem": "在 CI/CD 流水线中，代码从提交到部署的自动化流程不包括以下哪个阶段？",
+    "options": {"A": "代码编译构建", "B": "自动化测试", "C": "人工代码评审", "D": "自动部署上线"},
+    "correct_answer": "C",
+    "source": "web"
+  },
+  {
+    "id": 42,
+    "type": "single",
+    "stem": "GraphQL 查询语言与传统 REST API 的主要区别是什么？",
+    "options": {"A": "GraphQL 只支持 GET 请求", "B": "客户端可以精确指定需要的数据字段", "C": "GraphQL 不支持认证", "D": "GraphQL 只能返回 JSON 格式"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 43,
+    "type": "single",
+    "stem": "WebAssembly（Wasm）技术的核心目标是什么？",
+    "options": {"A": "替代 HTML 和 CSS", "B": "在浏览器中实现接近原生性能的代码执行", "C": "替代 JavaScript 语言", "D": "提供浏览器扩展插件机制"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 44,
+    "type": "single",
+    "stem": "零信任安全架构的核心原则是什么？",
+    "options": {"A": "默认信任内网所有设备", "B": "永不信任、始终验证", "C": "仅依赖防火墙保护", "D": "只验证外部访问请求"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 45,
+    "type": "single",
+    "stem": "Serverless 计算模型中，云服务商按什么维度向用户收费？",
+    "options": {"A": "服务器运行时长", "B": "实际请求次数和执行时间", "C": "分配的 CPU 核数", "D": "预购的套餐包"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 46,
+    "type": "single",
+    "stem": "在分布式系统中，CAP 定理指出一致性、可用性和分区容错性最多能同时满足几个？",
+    "options": {"A": "1 个", "B": "2 个", "C": "3 个", "D": "取决于实现"},
+    "correct_answer": "B",
+    "source": "web"
+  },
+  {
+    "id": 47,
+    "type": "multi",
+    "stem": "以下哪些是容器编排平台的常见功能？",
+    "options": {"A": "自动扩缩容", "B": "服务发现与负载均衡", "C": "本地文件系统管理", "D": "滚动更新与回滚"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "web"
+  },
+  {
+    "id": 48,
+    "type": "multi",
+    "stem": "以下哪些技术可用于实现微服务间的异步通信？",
+    "options": {"A": "RabbitMQ 消息队列", "B": "Apache Kafka 事件流", "C": "REST API 同步调用", "D": "gRPC 双向流"},
+    "correct_answer": "A|答案分隔|B",
+    "source": "web"
+  },
+  {
+    "id": 49,
+    "type": "multi",
+    "stem": "Web 应用性能优化中，以下哪些属于前端优化策略？",
+    "options": {"A": "资源压缩与合并", "B": "使用 CDN 分发静态资源", "C": "数据库查询优化", "D": "浏览器缓存策略"},
+    "correct_answer": "A|答案分隔|B|答案分隔|D",
+    "source": "web"
+  },
+  {
+    "id": 50,
+    "type": "multi",
+    "stem": "以下哪些是常见的 API 认证方式？",
+    "options": {"A": "API Key", "B": "OAuth 2.0", "C": "JWT Token", "D": "HTML Cookie"},
+    "correct_answer": "A|答案分隔|B|答案分隔|C",
+    "source": "web"
+  }
+]

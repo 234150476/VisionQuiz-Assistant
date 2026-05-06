@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>在线答题系统</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+
+    /* 顶部标题栏 */
+    .header { background: #1a73e8; color: #fff; padding: 16px 24px; font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+    .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 13px; }
+
+    /* 主布局 */
+    .container { display: flex; max-width: 1200px; margin: 20px auto; gap: 20px; padding: 0 16px; }
+
+    /* 左侧题号导航 */
+    .sidebar { width: 260px; flex-shrink: 0; background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .sidebar h3 { font-size: 15px; color: #666; margin-bottom: 12px; }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .nav-btn { width: 42px; height: 42px; border-radius: 8px; border: 2px solid #e0e0e0; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .nav-btn:hover { border-color: #1a73e8; color: #1a73e8; }
+    .nav-btn.active { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+    .nav-btn.answered { background: #e8f5e9; border-color: #4caf50; color: #4caf50; }
+    .nav-btn.answered.active { background: #4caf50; color: #fff; border-color: #4caf50; }
+
+    /* 右侧题目区域 */
+    .main { flex: 1; background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); min-height: 500px; }
+    .question-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .q-number { background: #1a73e8; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+    .q-type { padding: 4px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+    .q-type.single { background: #e3f2fd; color: #1565c0; }
+    .q-type.multi { background: #fce4ec; color: #c62828; }
+    .q-source { font-size: 12px; color: #999; margin-left: auto; }
+
+    .stem { font-size: 17px; line-height: 1.7; margin-bottom: 24px; color: #222; }
+
+    /* 选项 */
+    .options { display: flex; flex-direction: column; gap: 12px; }
+    .option { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; border: 2px solid #e8e8e8; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+    .option:hover { border-color: #1a73e8; background: #f8f9ff; }
+    .option.selected { border-color: #1a73e8; background: #e8f0fe; }
+    .option.selected.multi { border-color: #c62828; background: #fce4ec; }
+    .option input { display: none; }
+    .option .radio-circle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ccc; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .option .check-box { width: 22px; height: 22px; border-radius: 4px; border: 2px solid #ccc; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .option.selected .radio-circle { border-color: #1a73e8; background: #1a73e8; }
+    .option.selected .radio-circle::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+    .option.selected .check-box { border-color: #c62828; background: #c62828; }
+    .option.selected .check-box::after { content: "✓"; color: #fff; font-size: 14px; font-weight: 700; }
+    .option .label { font-weight: 600; color: #555; margin-right: 8px; font-size: 15px; }
+    .option .text { font-size: 15px; line-height: 1.5; color: #333; }
+
+    /* 底部按钮 */
+    .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid #eee; }
+    .btn { padding: 10px 28px; border-radius: 6px; border: none; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.15s; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-prev { background: #f5f5f5; color: #666; }
+    .btn-prev:hover:not(:disabled) { background: #eee; }
+    .btn-next { background: #1a73e8; color: #fff; }
+    .btn-next:hover:not(:disabled) { background: #1557b0; }
+    .btn-submit { background: #4caf50; color: #fff; padding: 12px 40px; font-size: 16px; }
+    .btn-submit:hover { background: #388e3c; }
+    .progress-text { font-size: 14px; color: #888; }
+
+    /* 结果页 */
+    .result-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+    .result-overlay.show { display: flex; }
+    .result-card { background: #fff; border-radius: 12px; padding: 32px 40px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+    .result-card h2 { text-align: center; margin-bottom: 24px; color: #1a73e8; }
+    .score-big { text-align: center; font-size: 64px; font-weight: 800; color: #1a73e8; margin: 16px 0; }
+    .score-big .unit { font-size: 24px; color: #999; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+    .stat { background: #f8f9fa; padding: 12px 16px; border-radius: 8px; text-align: center; }
+    .stat .num { font-size: 24px; font-weight: 700; }
+    .stat .label { font-size: 13px; color: #888; margin-top: 4px; }
+    .stat.db .num { color: #4caf50; }
+    .stat.web .num { color: #ff9800; }
+    .wrong-list { margin-top: 20px; }
+    .wrong-item { padding: 12px; border-left: 3px solid #f44336; background: #fff5f5; margin-bottom: 8px; border-radius: 0 6px 6px 0; }
+    .wrong-item .q { font-weight: 600; margin-bottom: 4px; }
+    .wrong-item .a { font-size: 13px; color: #666; }
+    .btn-close { margin-top: 20px; display: block; margin-left: auto; margin-right: auto; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span>在线答题系统</span>
+  <span class="badge" id="totalBadge">共 0 题</span>
+</div>
+
+<div class="container">
+  <div class="sidebar">
+    <h3>题目导航</h3>
+    <div class="nav-grid" id="navGrid"></div>
+  </div>
+  <div class="main" id="questionArea">
+    <div class="question-header">
+      <div class="q-number" id="qNumber">1</div>
+      <span class="q-type" id="qType">单选题</span>
+      <span class="q-source" id="qSource"></span>
+    </div>
+    <div class="stem" id="qStem">加载中...</div>
+    <div class="options" id="qOptions"></div>
+    <div class="footer">
+      <button class="btn btn-prev" id="btnPrev" onclick="prevQ()">上一题</button>
+      <span class="progress-text" id="progressText">1 / 0</span>
+      <button class="btn btn-next" id="btnNext" onclick="nextQ()">下一题</button>
+      <button class="btn btn-submit" id="btnSubmit" onclick="submitAll()" style="display:none">提交答卷</button>
+    </div>
+  </div>
+</div>
+
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-card" id="resultCard"></div>
+</div>
+
+<script>
+let questions = [];
+let answers = {};
+let current = 0;
+
+async function init() {
+  const res = await fetch("/api/questions");
+  questions = await res.json();
+  document.getElementById("totalBadge").textContent = `共 ${questions.length} 题`;
+  buildNav();
+  showQuestion(0);
+}
+
+function buildNav() {
+  const grid = document.getElementById("navGrid");
+  grid.innerHTML = "";
+  questions.forEach((q, i) => {
+    const btn = document.createElement("button");
+    btn.className = "nav-btn";
+    btn.textContent = i + 1;
+    btn.onclick = () => showQuestion(i);
+    grid.appendChild(btn);
+  });
+}
+
+function showQuestion(idx) {
+  current = idx;
+  const q = questions[idx];
+  document.getElementById("qNumber").textContent = idx + 1;
+  const typeEl = document.getElementById("qType");
+  if (q.type === "single") {
+    typeEl.textContent = "单选题";
+    typeEl.className = "q-type single";
+  } else {
+    typeEl.textContent = "多选题";
+    typeEl.className = "q-type multi";
+  }
+  document.getElementById("qSource").textContent = q.source === "db" ? "题库" : "网络";
+  document.getElementById("qStem").textContent = q.stem;
+
+  const optDiv = document.getElementById("qOptions");
+  optDiv.innerHTML = "";
+  const selected = answers[q.id] || "";
+  const selectedSet = new Set(selected.split("|答案分隔|").filter(Boolean));
+
+  Object.entries(q.options).forEach(([key, text]) => {
+    const div = document.createElement("div");
+    const isSelected = selectedSet.has(key);
+    div.className = "option" + (isSelected ? " selected" : "") + (q.type === "multi" ? " multi" : "");
+    div.onclick = () => selectOption(q.id, key, q.type);
+
+    const indicator = document.createElement("div");
+    indicator.className = q.type === "multi" ? "check-box" : "radio-circle";
+
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = key + ".";
+
+    const content = document.createElement("span");
+    content.className = "text";
+    content.textContent = text;
+
+    div.appendChild(indicator);
+    div.appendChild(label);
+    div.appendChild(content);
+    optDiv.appendChild(div);
+  });
+
+  updateNav();
+  updateButtons();
+}
+
+function selectOption(qid, key, type) {
+  if (type === "single") {
+    answers[qid] = key;
+  } else {
+    const sep = "|答案分隔|";
+    let set = new Set((answers[qid] || "").split(sep).filter(Boolean));
+    if (set.has(key)) set.delete(key); else set.add(key);
+    answers[qid] = Array.from(set).sort().join(sep);
+  }
+  showQuestion(current);
+}
+
+function updateNav() {
+  const btns = document.querySelectorAll(".nav-btn");
+  btns.forEach((btn, i) => {
+    btn.className = "nav-btn";
+    if (i === current) btn.classList.add("active");
+    if (answers[questions[i].id]) btn.classList.add("answered");
+  });
+}
+
+function updateButtons() {
+  document.getElementById("btnPrev").disabled = current === 0;
+  const isLast = current === questions.length - 1;
+  document.getElementById("btnNext").style.display = isLast ? "none" : "";
+  document.getElementById("btnSubmit").style.display = isLast ? "" : "none";
+  const answered = Object.keys(answers).filter(k => answers[k]).length;
+  document.getElementById("progressText").textContent = `${current + 1} / ${questions.length} (已答 ${answered})`;
+}
+
+function prevQ() { if (current > 0) showQuestion(current - 1); }
+function nextQ() { if (current < questions.length - 1) showQuestion(current + 1); }
+
+async function submitAll() {
+  if (!confirm("确定提交答卷？")) return;
+  const res = await fetch("/api/submit", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({answers})
+  });
+  const data = await res.json();
+  showResult(data);
+}
+
+function showResult(data) {
+  const card = document.getElementById("resultCard");
+  const wrongs = data.details.filter(d => !d.is_correct);
+  card.innerHTML = `
+    <h2>答题结果</h2>
+    <div class="score-big">${data.score}<span class="unit">%</span></div>
+    <div class="stats">
+      <div class="stat"><div class="num">${data.correct}/${data.total}</div><div class="label">总正确率</div></div>
+      <div class="stat db"><div class="num">${data.db_rate}%</div><div class="label">题库题 (${data.db_correct}/${data.db_total})</div></div>
+      <div class="stat web"><div class="num">${data.web_rate}%</div><div class="label">网络题 (${data.web_correct}/${data.web_total})</div></div>
+      <div class="stat"><div class="num">${data.total - data.correct}</div><div class="label">错题数</div></div>
+    </div>
+    ${wrongs.length ? '<h3 style="margin-top:16px;color:#f44336">错题详情</h3><div class="wrong-list">' + wrongs.map(w => `
+      <div class="wrong-item">
+        <div class="q">第${w.id}题 [${w.type === "single" ? "单选" : "多选"}] ${w.stem.slice(0, 60)}${w.stem.length > 60 ? "..." : ""}</div>
+        <div class="a">你的答案: ${w.user_answer || "未作答"} | 正确答案: ${w.correct_answer} | 来源: ${w.source === "db" ? "题库" : "网络"}</div>
+      </div>
+    `).join("") + "</div>" : '<p style="text-align:center;color:#4caf50;font-size:18px;margin-top:16px">全部答对！</p>'}
+    <button class="btn btn-close btn-next" onclick="location.reload()">重新答题</button>
+  `;
+  document.getElementById("resultOverlay").classList.add("show");
+}
+
+init();
+</script>
+</body>
+</html>

@@ -2,9 +2,9 @@ mss
 pillow
 imagehash
 pyautogui
-openai
+openai>=1.50.0
 openpyxl
 paddlepaddle
 paddleocr
-pywin32
 pyinstaller
+flask>=3.0.0
