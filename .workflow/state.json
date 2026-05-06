@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_name": "VisionQuiz Assistant",
   "status": "active",
-  "current_milestone": "P4",
+  "current_milestone": "P5",
   "current_task_id": null,
   "milestones": [
     {
@@ -74,7 +74,7 @@
       "id": "P4",
       "name": "Phase 4: MiMo-V2.5 Integration",
       "description": "接入 Xiaomi MiMo-V2.5 多模态模型，实现模型预设配置和切换",
-      "status": "pending",
+      "status": "completed",
       "phases": [4],
       "depends_on": "P3",
       "tasks": [
@@ -91,6 +91,30 @@
         "MiMo-V2.5 结构化 JSON 解析成功率 ≥ 90%",
         "模型切换不影响已有功能",
         "基准测试可重复运行"
+      ]
+    },
+    {
+      "id": "P5",
+      "name": "Phase 5: Core Functionality Hardening",
+      "description": "核心功能加固：重复画面检测修复、引擎超时保护、识别结果过滤、HUD 截断修复、模型预设扩展、半自动模式修正",
+      "status": "completed",
+      "phases": [5],
+      "depends_on": "P4",
+      "tasks": [
+        "pHash Hamming 距离替代精确匹配",
+        "引擎识别调用超时保护",
+        "Prompt A+B 空结果过滤",
+        "HUD 截断逻辑修复",
+        "模型预设扩展 (10+ 视觉模型)",
+        "半自动 answered 标记时机修正"
+      ],
+      "success_criteria": [
+        "pHash 相似屏幕正确判重（Hamming ≤ 8）",
+        "AI 调用有超时保护，引擎不阻塞",
+        "Prompt A+B 均失败时返回 None",
+        "HUD 显示不溢出窗口",
+        "MODEL_PRESETS 包含 10+ 视觉模型",
+        "半自动模式等待用户确认后标记"
       ]
     }
   ],
@@ -263,9 +287,113 @@
       "harvested": false,
       "created_at": "2026-05-06T11:38:00+08:00",
       "completed_at": "2026-05-06T12:05:00+08:00"
+    },
+    {
+      "id": "ANL-004",
+      "type": "analyze",
+      "milestone": "P4",
+      "phase": 4,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-analyze-phase-4-mimo-v2-5-integration",
+      "status": "completed",
+      "depends_on": null,
+      "harvested": false,
+      "created_at": "2026-05-06T12:20:00+08:00",
+      "completed_at": "2026-05-06T12:20:00+08:00"
+    },
+    {
+      "id": "PLN-004",
+      "type": "plan",
+      "milestone": "P4",
+      "phase": 4,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P4-mimo-v2-5-integration",
+      "status": "completed",
+      "depends_on": "ANL-004",
+      "harvested": false,
+      "created_at": "2026-05-06T12:35:00+08:00",
+      "completed_at": "2026-05-06T12:35:00+08:00"
+    },
+    {
+      "id": "EXC-004",
+      "type": "execute",
+      "milestone": "P4",
+      "phase": 4,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P4-mimo-v2-5-integration",
+      "status": "completed",
+      "depends_on": "PLN-004",
+      "harvested": false,
+      "created_at": "2026-05-06T12:36:00+08:00",
+      "completed_at": "2026-05-06T12:55:00+08:00"
+    },
+    {
+      "id": "VRF-004",
+      "type": "verify",
+      "milestone": "P4",
+      "phase": 4,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P4-mimo-v2-5-integration",
+      "status": "completed",
+      "depends_on": "EXC-004",
+      "harvested": false,
+      "created_at": "2026-05-06T12:55:00+08:00",
+      "completed_at": "2026-05-06T12:58:00+08:00"
+    },
+    {
+      "id": "ANL-005",
+      "type": "analyze",
+      "milestone": "P5",
+      "phase": 5,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-analyze-phase-5-core-hardening",
+      "status": "completed",
+      "depends_on": null,
+      "harvested": false,
+      "created_at": "2026-05-06T13:15:00+08:00",
+      "completed_at": "2026-05-06T13:20:00+08:00"
+    },
+    {
+      "id": "PLN-005",
+      "type": "plan",
+      "milestone": "P5",
+      "phase": 5,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P5-core-hardening",
+      "status": "completed",
+      "depends_on": "ANL-005",
+      "harvested": false,
+      "created_at": "2026-05-06T13:22:00+08:00",
+      "completed_at": "2026-05-06T13:22:00+08:00"
+    },
+    {
+      "id": "EXC-005",
+      "type": "execute",
+      "milestone": "P5",
+      "phase": 5,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P5-core-hardening",
+      "status": "completed",
+      "depends_on": "PLN-005",
+      "harvested": false,
+      "created_at": "2026-05-06T13:22:00+08:00",
+      "completed_at": "2026-05-06T13:35:00+08:00"
+    },
+    {
+      "id": "VRF-005",
+      "type": "verify",
+      "milestone": "P5",
+      "phase": 5,
+      "scope": "phase",
+      "path": ".workflow/scratch/20260506-plan-P5-core-hardening",
+      "status": "completed",
+      "depends_on": "EXC-005",
+      "harvested": false,
+      "created_at": "2026-05-06T13:35:00+08:00",
+      "completed_at": "2026-05-06T13:36:00+08:00"
     }
   ],
-  "last_updated": "2026-05-06T12:05:00+08:00",
+  "last_updated": "2026-05-06T13:22:00+08:00",
   "last_codebase_rebuild": "2026-05-06T06:27:00+08:00",
   "accumulated_context": {
     "key_decisions": [
@@ -276,11 +404,13 @@
       "AI JSON 提示词改造作为 Task 1，是全自动答题的前提",
       "P3 contract-first：Task 1 的 Prompt A/B/C JSON schema 是 Task 2 全自动路由的硬依赖",
       "P3 startup-readiness：Task 4 题库扫描 + Task 7 配置清理共同决定 Task 6 启动按钮状态",
-      "P3 scope-gap：半自动 answered=1 仍偏离 design.md §3.4，需并入本阶段实现范围"
+      "P3 scope-gap：半自动 answered=1 仍偏离 design.md §3.4，需并入本阶段实现范围",
+      "P4 ProviderProfile 架构：集中 MiMo 差异（extra_body、image_transport）而非分散分支",
+      "P4 Thinking 块剥离：正则预处理 _strip_thinking() 作为 _extract_json 前置步骤",
+      "P4 预设系统：MODEL_PRESETS + selected_preset 配置项，get_preset_catalog() 防变异"
     ],
     "blockers": [],
     "deferred": [
-      "MiMo-V2.5 接入",
       "试卷批量解析",
       "多轮对话",
       "LaTeX/AST 支持",
@@ -306,6 +436,12 @@
       "name": "Phase 3: Functional Usability",
       "completed_at": "2026-05-06T12:14:00+08:00",
       "summary": "AI JSON 提示词改造、全自动答题路由、HUD 单行布局、题库自动扫描、启动按钮状态逻辑、OCR 预处理、DPAPI 加密配置"
+    },
+    {
+      "milestone": "P4",
+      "name": "Phase 4: MiMo-V2.5 Integration",
+      "completed_at": "2026-05-06T12:58:00+08:00",
+      "summary": "ProviderProfile 架构、MODEL_PRESETS 预设系统、MiMo thinking 块剥离、模型切换 UI、基准测试框架、文档更新"
     }
   ]
 }

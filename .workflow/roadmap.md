@@ -2,14 +2,15 @@
 
 ## Overview
 
-项目已完成稳定性基础建设（P1 Core Stability + P2 UI Stability），34/34 测试通过。当前进入功能可用性阶段：修复设计规范与实际实现之间的功能差距，补齐核心流程中缺失的关键环节，使工具从"勉强能运行"提升为"完整可用"。重点修复 AI 提示词结构化、全自动答题流程、HUD 展示规范等 7 项功能缺陷。
+项目已完成稳定性基础建设（P1-P2）、功能可用性（P3）和模型接入（P4），85 测试通过。当前进入核心功能加固阶段：修复引擎重复检测、超时保护、HUD 显示、模型预设扩展等 6 个设计偏差，使核心答题引擎从"能跑"提升为"可靠"。
 
 ## Phases
 
 - [x] **Phase 1: Core Stability — 核心引擎层稳定性** — 修复 engine/recognizer/cache/ai_client/ocr/screenshot 的异常处理、资源管理和容错机制
 - [x] **Phase 2: UI Stability — 界面层稳定性** — 修复主线程阻塞、窗口竞态、错误展示和优雅关闭
 - [x] **Phase 3: Functional Usability — 功能可用性** — 补齐设计规范中的功能差距，使核心答题流程完整可用
-- [ ] **Phase 4: MiMo-V2.5 Integration — 新模型接入** — 接入 Xiaomi MiMo-V2.5 多模态模型，实现模型预设配置和切换
+- [x] **Phase 4: MiMo-V2.5 Integration — 新模型接入** — 接入 Xiaomi MiMo-V2.5 多模态模型，实现模型预设配置和切换
+- [ ] **Phase 5: Core Functionality Hardening — 核心功能加固** — 修复重复画面检测、引擎超时保护、识别结果过滤、HUD 截断、模型预设扩展、半自动模式修正
 
 ## Phase Details
 
@@ -119,4 +120,5 @@
 | 1. Core Stability | Completed | 2026-05-06 |
 | 2. UI Stability | Completed | 2026-05-06 |
 | 3. Functional Usability | Completed | 2026-05-06 |
-| 4. MiMo-V2.5 Integration | Not started | - |
+| 4. MiMo-V2.5 Integration | Completed | 2026-05-06 |
+| 5. Core Functionality Hardening | Active | - |

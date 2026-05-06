@@ -5,9 +5,11 @@
 import threading
 import logging
 import os
+import time
 from typing import Optional, Callable
 
-from core import config
+import imagehash
+
 from core.cache import CacheDB
 from core.matcher import QuestionMatcher
 from core.ai_client import AIClient
@@ -25,7 +27,9 @@ class EngineMode:
 
 class EngineState:
     IDLE = "idle"
+    STARTING = "starting"
     RUNNING = "running"
+    STOPPING = "stopping"
     STOPPED = "stopped"
 
 
@@ -55,6 +59,7 @@ class Engine:
         self._db_path = db_path
         self._mode = mode
         self._screen_size = screen_size  # (width, height) 由主线程传入
+        self._state_lock = threading.Lock()
         self._state = EngineState.IDLE
 
         # 回调函数（由 UI 注册）
@@ -72,10 +77,20 @@ class Engine:
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
+        # pHash Hamming 距离阈值（≤ threshold 判定为同屏）
+        self._phash_threshold: int = cfg.get("phash_threshold", 8)
+        # 识别调用超时（秒）
+        self._recognition_timeout: int = cfg.get("recognition_timeout", 45)
+
         # 快照：mark_current_answered 使用固定 phash/qhash，避免与 _last_phash 竞态
-        self._last_phash: str = ""
+        self._last_phash: Optional[imagehash.ImageHash] = None  # ImageHash 对象（Hamming 距离比较）
+        self._last_phash_str: str = ""  # 字符串形式（仅用于日志）
         self._last_result_qhash: str = ""   # 最后一次识别成功的 question_hash（兜底用）
         self._last_phash_lock = threading.Lock()
+
+        # 半自动模式：pending_answer 机制（等待用户手动标记或超时自动标记）
+        self._pending_answer: Optional[dict] = None
+        self._auto_mark_timeout: int = cfg.get("auto_mark_timeout", 10)
 
     # ------------------------------------------------------------------
     # 回调注册
@@ -96,36 +111,73 @@ class Engine:
     # ------------------------------------------------------------------
 
     def start(self):
-        if self._state == EngineState.RUNNING:
-            return
+        with self._state_lock:
+            if self._state != EngineState.IDLE:
+                return
+            self._state = EngineState.STARTING
+
         self._stop_event.clear()
-        self._init_components()
-        self._state = EngineState.RUNNING
+        try:
+            cache, matcher, ai_client, recognizer, clicker = self._init_components()
+        except Exception:
+            with self._state_lock:
+                self._state = EngineState.IDLE
+            raise
+
+        self._cache = cache
+        self._matcher = matcher
+        self._ai = ai_client
+        self._recognizer = recognizer
+        self._clicker = clicker
         self._thread = threading.Thread(target=self._loop, daemon=True, name="EngineLoop")
         self._thread.start()
+        with self._state_lock:
+            self._state = EngineState.RUNNING
         logger.info("引擎已启动（模式: %s）", self._mode)
         self._notify_status("运行中")
 
     def stop(self):
         """
         停止引擎。
-        先设置停止事件，等待线程退出后再清理资源，避免线程仍在运行时关闭数据库连接。
+        先关闭外部 I/O，再设置停止事件，等待线程退出后清理资源。
         """
+        with self._state_lock:
+            if self._state in (EngineState.IDLE, EngineState.STOPPED):
+                return
+            if self._state == EngineState.STOPPING:
+                return
+            self._state = EngineState.STOPPING
+            thread = self._thread
+            ai_client = self._ai
+
+        ai_closed = False
+        try:
+            if ai_client is not None:
+                ai_client.close()
+                ai_closed = True
+        except Exception:
+            logger.exception("关闭 AI 客户端失败")
+        else:
+            if ai_closed and self._ai is ai_client:
+                self._ai = None
+
         self._stop_event.set()
-        self._state = EngineState.STOPPED
-        if self._thread and self._thread.is_alive():
-            # 等待线程实际退出，超时后记录警告但继续清理
-            self._thread.join(timeout=35)  # 略大于 AI 最大超时(30s)
-            if self._thread.is_alive():
-                logger.warning("引擎线程未能在超时内停止，强制清理资源")
+        if thread and thread.is_alive():
+            thread.join(timeout=5)
+            if thread.is_alive():
+                logger.warning("Thread did not exit within 5s")
+
         self._thread = None
         self._cleanup()
+        with self._state_lock:
+            self._state = EngineState.IDLE
         logger.info("引擎已停止")
         self._notify_status("已停止")
 
     @property
     def is_running(self) -> bool:
-        return self._state == EngineState.RUNNING
+        with self._state_lock:
+            return self._state == EngineState.RUNNING
 
     # ------------------------------------------------------------------
     # 内部初始化
@@ -134,49 +186,82 @@ class Engine:
     def _init_components(self):
         cfg = self._cfg
         expire_days = cfg.get("cache_expire_days", 7)
+        initialized = []
 
-        # 缓存
-        self._cache = CacheDB()
-        self._cache.init_db(expire_days)
+        try:
+            # 缓存
+            cache = CacheDB()
+            initialized.append(cache)
+            cache.init_db(expire_days)
 
-        # 题库匹配器
-        self._matcher = None
-        if self._db_path and os.path.isfile(self._db_path):
-            try:
-                self._matcher = QuestionMatcher(self._db_path)
-                logger.info("题库已加载: %s", self._db_path)
-            except Exception as e:
-                logger.warning("题库加载失败: %s", e)
+            # 题库匹配器
+            matcher = None
+            if self._db_path and os.path.isfile(self._db_path):
+                try:
+                    matcher = QuestionMatcher(self._db_path)
+                    logger.info("题库已加载: %s", self._db_path)
+                except Exception as e:
+                    logger.warning("题库加载失败: %s", e)
 
-        # AI 客户端
-        self._ai = None
-        api_key = cfg.get("api_key", "").strip()
-        model = cfg.get("model", "").strip()
-        if api_key and model:
-            self._ai = AIClient(
-                api_key=api_key,
-                api_base_url=cfg.get("api_base_url", "https://api.openai.com/v1"),
-                model=model,
-                timeout=cfg.get("timeout", 30),
+            # AI 客户端
+            ai_client = None
+            api_key = cfg.get("api_key", "").strip()
+            model = cfg.get("model", "").strip()
+            if api_key and model:
+                ai_client = AIClient(
+                    api_key=api_key,
+                    api_base_url=cfg.get("api_base_url", "https://api.openai.com/v1"),
+                    model=model,
+                    timeout=cfg.get("timeout", 30),
+                )
+                initialized.append(ai_client)
+
+            # 识别器
+            recognizer = Recognizer(
+                cache=cache,
+                matcher=matcher,
+                ai_client=ai_client,
+                similarity_threshold=cfg.get("similarity_threshold", 0.8),
             )
 
-        # 识别器
-        self._recognizer = Recognizer(
-            cache=self._cache,
-            matcher=self._matcher,
-            ai_client=self._ai,
-            similarity_threshold=cfg.get("similarity_threshold", 0.8),
-        )
+            # 自动点击器（仅全自动模式；分辨率由主线程通过 screen_size 传入，不在此处创建 tk.Tk()）
+            clicker = None
+            if self._mode == EngineMode.FULL_AUTO:
+                sw, sh = self._screen_size
+                clicker = AutoClicker(recognizer, sw, sh)
 
-        # 自动点击器（仅全自动模式；分辨率由主线程通过 screen_size 传入，不在此处创建 tk.Tk()）
-        if self._mode == EngineMode.FULL_AUTO:
-            sw, sh = self._screen_size
-            self._clicker = AutoClicker(self._recognizer, sw, sh)
+            return cache, matcher, ai_client, recognizer, clicker
+        except Exception:
+            self._cleanup_initialized(initialized)
+            raise
+
+    def _cleanup_initialized(self, initialized) -> None:
+        for component in reversed(initialized):
+            close = getattr(component, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception:
+                    logger.exception("初始化失败后的组件回收异常")
 
     def _cleanup(self):
+        if self._ai:
+            try:
+                self._ai.close()
+            except Exception:
+                logger.exception("关闭 AI 客户端失败")
+            self._ai = None
+
         if self._cache:
-            self._cache.close()
+            try:
+                self._cache.close()
+            except Exception:
+                logger.exception("关闭缓存失败")
             self._cache = None
+
+        self._matcher = None
+        self._recognizer = None
+        self._clicker = None
 
     # ------------------------------------------------------------------
     # 主循环
@@ -195,77 +280,169 @@ class Engine:
             # 等待下一个截图周期，支持快速响应停止信号
             self._stop_event.wait(timeout=interval)
 
+    def _tick_capture(self):
+        try:
+            img = ss.capture_screen()
+            if img is None:
+                logger.info("截图失败，跳过本轮")
+                return None
+            return img
+        except Exception as exc:
+            logger.exception("截图阶段异常: %s", exc)
+            self._notify_error(f"截图异常: {exc}")
+            return None
+
+    def _tick_hash(self, img):
+        try:
+            phash_str = ss.compute_phash(img)
+            question_hash_hint = ss.compute_question_hash(phash_str) if phash_str else ""
+
+            if phash_str:
+                phash_obj = imagehash.hex_to_hash(phash_str)
+            else:
+                phash_obj = None
+
+            with self._last_phash_lock:
+                if phash_obj is not None and self._last_phash is not None:
+                    distance = phash_obj - self._last_phash
+                    if distance <= self._phash_threshold:
+                        return None
+
+            if self._cache and phash_str:
+                cached = self._cache.get_by_phash(phash_str)
+                if cached and cached.get("answered"):
+                    with self._last_phash_lock:
+                        self._last_phash = phash_obj
+                        self._last_phash_str = phash_str
+                    return None
+
+            return phash_str, question_hash_hint
+        except Exception as exc:
+            logger.exception("哈希阶段异常: %s", exc)
+            return "", ""
+
+    def _tick_recognize(self, img, phash_str: str):
+        try:
+            if self._recognizer is None:
+                self._notify_error("识别器未初始化")
+                return None
+
+            # 带超时保护的识别调用：防止 AI 调用长时间阻塞引擎循环
+            result_box: list = [None]
+            error_box: list = [None]
+
+            def _do_recognize():
+                try:
+                    result_box[0] = self._recognizer.recognize(img, phash_str=phash_str)
+                except Exception as exc:
+                    error_box[0] = exc
+
+            worker = threading.Thread(target=_do_recognize, daemon=True, name="RecognizeWorker")
+            worker.start()
+            worker.join(timeout=self._recognition_timeout)
+
+            if worker.is_alive():
+                # 超时：引擎继续运行，不阻塞
+                logger.warning("识别超时 (%.1fs)，跳过本轮", self._recognition_timeout)
+                self._notify_error(f"识别超时 ({self._recognition_timeout}s)，已跳过")
+                return None
+
+            if error_box[0] is not None:
+                raise error_box[0]
+
+            result = result_box[0]
+            if result is None or not isinstance(result.answer, str) or not result.answer.strip():
+                self._notify_error("识别失败：所有策略均未能给出答案")
+                return None
+            return result
+        except Exception as exc:
+            logger.exception("识别阶段异常: %s", exc)
+            self._notify_error(f"识别异常: {exc}")
+            return None
+
+    def _tick_click(self, img, result: RecognizeResult) -> bool:
+        try:
+            if self._mode != EngineMode.FULL_AUTO or self._clicker is None:
+                return True
+            # 将截图尺寸附加到 result，供 clicker 坐标转换使用
+            img_w, img_h = img.size
+            result._img_w = img_w
+            result._img_h = img_h
+            success = self._clicker.dispatch_answer(result)
+            if success:
+                if self._cache and result.question_hash:
+                    self._cache.mark_answered(result.question_hash)
+                return True
+            self._notify_error("自动点击失败，请手动操作")
+            return False
+        except Exception as exc:
+            logger.exception("点击阶段异常: %s", exc)
+            self._notify_error(f"自动点击异常: {exc}")
+            return False
+
     def _tick(self):
-        # 截图
-        img = ss.capture_screen()
+        # 半自动模式：检查 pending_answer 是否超时需要自动标记
+        if self._pending_answer and self._cache:
+            elapsed = time.monotonic() - self._pending_answer["time"]
+            if elapsed >= self._auto_mark_timeout:
+                qhash = self._pending_answer["question_hash"]
+                self._pending_answer = None
+                if qhash:
+                    self._cache.mark_answered(qhash)
+                    logger.info("半自动模式超时 (%.0fs)，已自动标记 answered: %s", elapsed, qhash)
 
-        # pHash（计算一次，传递给 recognizer 避免重复计算）
-        phash_str = ss.compute_phash(img)
-
-        # pHash 去重：画面未变化则跳过
-        with self._last_phash_lock:
-            if phash_str == self._last_phash:
-                return
-            # 注意：_last_phash 在识别成功后才更新，识别失败时保持旧值以允许下次重试
-
-        # 检查 pHash 缓存（已答过，直接跳过）
-        if self._cache:
-            cached = self._cache.get_by_phash(phash_str)
-            if cached and cached.get("answered"):
-                # 已答过的题目也更新 _last_phash，避免反复触发"已答"检查
-                with self._last_phash_lock:
-                    self._last_phash = phash_str
-                return
-
-        # 识别（将 phash_str 传入，避免 recognizer 内部重复计算）
-        result = self._recognizer.recognize(img, phash_str=phash_str)
-        if result is None:
-            self._notify_error("识别失败：所有策略均未能给出答案")
-            # 识别失败：不更新 _last_phash，下次同一画面可以重试
+        img = self._tick_capture()
+        if img is None:
             return
 
-        # 识别成功：更新 _last_phash 和 _last_result_qhash
+        hash_result = self._tick_hash(img)
+        if hash_result is None:
+            return
+        phash_str, _ = hash_result
+
+        result = self._tick_recognize(img, phash_str)
+        if result is None:
+            return
+
         with self._last_phash_lock:
-            self._last_phash = phash_str
+            if phash_str:
+                self._last_phash = imagehash.hex_to_hash(phash_str)
+                self._last_phash_str = phash_str
             self._last_result_qhash = result.question_hash
 
-        # 通知 UI 展示结果
         self._notify_result(result)
+        self._tick_click(img, result)
 
-        # 全自动模式：执行点击
-        if self._mode == EngineMode.FULL_AUTO and self._clicker:
-            success = self._clicker.execute(img, result.answer)
-            if success and self._cache and result.question_hash:
+        if self._mode == EngineMode.SEMI_AUTO:
+            # 半自动模式：不立即标记 answered，等待用户手动确认或超时自动标记
+            self._pending_answer = {
+                "question_hash": result.question_hash,
+                "time": time.monotonic(),
+            }
+        else:
+            # 全自动模式：立即标记 answered
+            if self._cache and result.question_hash:
                 self._cache.mark_answered(result.question_hash)
-            elif not success:
-                self._notify_error("自动点击失败，请手动操作")
-
-        # 半自动模式：answered 由用户确认后外部调用 mark_current_answered()
 
     # ------------------------------------------------------------------
     # 回调通知
     # ------------------------------------------------------------------
 
-    def _notify_result(self, result: RecognizeResult):
-        if self._on_result:
+    def _emit_callback(self, callback: Optional[Callable], *args):
+        if callback:
             try:
-                self._on_result(result)
-            except Exception as e:
-                logger.error("on_result 回调异常: %s", e)
+                callback(*args)
+            except Exception:
+                logger.exception("callback error")
+
+    def _notify_result(self, result: RecognizeResult):
+        self._emit_callback(self._on_result, result)
 
     def _notify_error(self, msg: str):
-        if self._on_error:
-            try:
-                self._on_error(msg)
-            except Exception as e:
-                logger.error("on_error 回调异常: %s", e)
+        self._emit_callback(self._on_error, msg)
 
     def _notify_status(self, status: str):
-        if self._on_status:
-            try:
-                self._on_status(status)
-            except Exception as e:
-                logger.error("on_status 回调异常: %s", e)
+        self._emit_callback(self._on_status, status)
 
     # ------------------------------------------------------------------
     # 外部接口（半自动模式使用）
@@ -277,8 +454,11 @@ class Engine:
         优先通过 pHash 查找缓存记录；若 pHash 尚未写入缓存（如题目通过 question_hash
         命中缓存但 phash 补写还未完成），则直接使用最后一次识别结果的 question_hash 兜底。
         """
+        # 清除 pending_answer（用户已手动确认）
+        self._pending_answer = None
+
         with self._last_phash_lock:
-            phash_snapshot = self._last_phash
+            phash_snapshot = self._last_phash_str
             qhash_snapshot = self._last_result_qhash
 
         if not self._cache:
@@ -296,7 +476,10 @@ class Engine:
             self._cache.mark_answered(qhash_snapshot)
 
     def switch_db(self, db_path: str):
-        """切换题库（运行时热切换，线程安全）。"""
+        """切换题库（仅限启动前，运行中禁止切换）。"""
+        if self._state == EngineState.RUNNING:
+            logger.warning("运行中不允许切换题库")
+            return False
         self._db_path = db_path
         if os.path.isfile(db_path):
             try:
