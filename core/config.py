@@ -143,7 +143,7 @@ CONFIG_DEFAULTS = {
     "api_base_url": "https://api.openai.com/v1",
     "model": "",
     "timeout": 30,
-    "similarity_threshold": 0.8,
+    "similarity_threshold": 0.55,
     "cache_expire_days": 7,
     "screenshot_interval": 2,
     "hud_opacity": 0.85,

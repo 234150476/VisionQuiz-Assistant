@@ -13,6 +13,7 @@ from core.cache import CacheDB
 from core.matcher import QuestionMatcher
 from core.ai_client import AIClient, PromptAResult, PromptBResult
 from core.element_provider import QuestionElement
+from core.answer_normalizer import normalize_bank_answer
 
 logger = logging.getLogger(__name__)
 
@@ -444,6 +445,10 @@ class Recognizer:
                 {"text": o.text, "element_ref": o.element_ref, "index": o.index}
                 for o in question_elem.options
             ]
+            # 归一化题库答案为选项字母
+            bank_result.answer = normalize_bank_answer(
+                bank_result.answer, bank_result.options, bank_result.question_type
+            )
             return bank_result
 
         # 2. AI 文本回答（仅 Prompt B）

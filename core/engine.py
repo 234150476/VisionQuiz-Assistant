@@ -16,6 +16,7 @@ from core.ai_client import AIClient
 from core.recognizer import Recognizer, RecognizeResult
 from core.clicker import AutoClicker, ElementClicker
 from core.element_provider import ElementProvider, QuestionElement
+from core.answer_normalizer import normalize_bank_answer
 from core import screenshot as ss
 
 logger = logging.getLogger(__name__)
@@ -225,7 +226,7 @@ class Engine:
                 cache=cache,
                 matcher=matcher,
                 ai_client=ai_client,
-                similarity_threshold=cfg.get("similarity_threshold", 0.8),
+                similarity_threshold=cfg.get("similarity_threshold", 0.55),
             )
 
             # 自动点击器（仅全自动模式；分辨率由主线程通过 screen_size 传入，不在此处创建 tk.Tk()）
@@ -426,6 +427,53 @@ class Engine:
             self._notify_error(f"自动点击异常: {exc}")
             return False
 
+    def _normalize_bank_result(self, img, ocr_text: str, result: "RecognizeResult") -> "RecognizeResult":
+        """题库命中后补调 Prompt A 获取选项坐标并归一化答案。
+
+        当题库匹配成功但缺少选项坐标时，调用 AI 的 Prompt A 仅获取选项位置，
+        然后将题库答案文本映射为选项字母（如 "D: xxx" → "D"）。
+        """
+        # 已有选项坐标时直接归一化
+        if result.options:
+            result.answer = normalize_bank_answer(
+                result.answer, result.options, result.question_type
+            )
+            return result
+
+        # 无选项坐标：调用 Prompt A 获取
+        if self._ai and img is not None:
+            try:
+                img_input = ocr_text.strip() if ocr_text.strip() else "（请直接读取截图内容）"
+                prompt_a = self._ai.answer_with_image(img_input, img)
+                if prompt_a:
+                    result.question_type = result.question_type or prompt_a.question_type
+                    result.options = [
+                        {"text": o.text, "x": o.x, "y": o.y, "letter": chr(ord("A") + i)}
+                        for i, o in enumerate(prompt_a.options)
+                    ]
+                    result.input_targets = [
+                        {"placeholder": t.placeholder, "x": t.x, "y": t.y}
+                        for t in prompt_a.input_targets
+                    ]
+                    result.recognition_source = "vision"
+                    logger.debug("Prompt A 获取选项成功: %d 个选项", len(result.options))
+            except Exception as exc:
+                logger.warning("Prompt A 获取选项失败: %s", exc)
+
+        # 归一化答案
+        if result.options:
+            result.answer = normalize_bank_answer(
+                result.answer, result.options, result.question_type
+            )
+        else:
+            # Prompt A 也失败，仅做纯字母提取
+            result.answer = normalize_bank_answer(
+                result.answer, [], result.question_type
+            )
+
+        result.answer_source = "bank"
+        return result
+
     def _tick(self):
         # 半自动模式：检查 pending_answer 是否超时需要自动标记
         if self._pending_answer and self._cache:
@@ -449,6 +497,10 @@ class Engine:
         result = self._tick_recognize(img, phash_str)
         if result is None:
             return
+
+        # 题库命中时：补调 Prompt A 获取选项坐标 + 归一化答案
+        if result.source == "bank" and not result.options:
+            result = self._normalize_bank_result(img, result.question_text, result)
 
         with self._last_phash_lock:
             if phash_str:
@@ -498,7 +550,7 @@ class Engine:
             try:
                 bank_hit = self._matcher.find_best(
                     question_elem.question_text.strip(),
-                    self._cfg.get("similarity_threshold", 0.8),
+                    self._cfg.get("similarity_threshold", 0.55),
                 )
                 if bank_hit:
                     result = RecognizeResult()
@@ -514,6 +566,10 @@ class Engine:
                         {"text": o.text, "element_ref": o.element_ref, "index": o.index}
                         for o in question_elem.options
                     ]
+                    # 归一化题库答案为选项字母
+                    result.answer = normalize_bank_answer(
+                        result.answer, result.options, result.question_type
+                    )
             except Exception as exc:
                 logger.warning("题库匹配失败: %s", exc)
 

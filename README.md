@@ -34,7 +34,7 @@
 | **交互模式** | 学习模式（仅展示解析）/ 辅助模式（辅助定位答题区域） |
 | **多题型兼容** | 单选 / 多选 / 判断 / 填空，多答案使用竖线分隔存储 |
 | **本地 OCR** | PaddleOCR 本地推理，数据不出域，适合隐私敏感场景 |
-| **题库热切换** | 运行中可动态切换知识库，无需重启 |
+| **题库目录扫描** | 启动前自动扫描 db/ 目录，运行中锁定不可切换 |
 
 ---
 
@@ -125,8 +125,18 @@ python main.py
 
 【设置】→ API 设置：
 
+- **模型预设**：内置推荐模型一键选择（OpenAI GPT-4o / MiMo-V2.5 / MiMo-V2-Omni 等），选择后自动填充 API Base URL 和模型名称
 - **API Base URL**：默认 `https://api.openai.com/v1`，可替换为任意 OpenAI 兼容端点
-- **模型名称**：推荐使用视觉模型，如 `gpt-4o`、`claude-3-5-sonnet`、`Qwen2.5-VL`、`MiMo-V2.5` 等
+- **模型名称**：推荐使用视觉模型，如 `gpt-4o`、`claude-3-5-sonnet`、`Qwen2.5-VL`、`mimo-v2.5` 等
+
+#### MiMo-V2.5 配置
+
+1. 获取 API Key：[Xiaomi MiMo 平台](https://platform.xiaomimimo.com)
+2. 在设置中选择 **"MiMo-V2.5 (视觉)"** 预设，或手动填写：
+   - API Base URL：`https://api.xiaomimimo.com/v1`
+   - 模型：`mimo-v2.5`
+3. 推荐视觉模型：`mimo-v2.5`（已确认支持图片理解）；`mimo-v2-omni` 为全模态备选
+4. 运行中不可切换模型，需停止引擎后在设置中修改
 
 ### 5. 导入学习资料
 
@@ -227,7 +237,7 @@ sequenceDiagram
 ## 🛣️ Roadmap
 
 - [x] 多模型统一接口（OpenAI / Claude / Qwen-VL 已验证）
-- [ ] 接入 Xiaomi MiMo-V2.5 原生多模态模型，对比视觉理解效果
+- [x] 接入 Xiaomi MiMo-V2.5 原生多模态模型，对比视觉理解效果
 - [ ] 基于长上下文能力，支持整套试卷一次性解析与知识点归纳
 - [ ] 增加多轮对话式讲解（追问、举一反三）
 - [ ] 数学公式 LaTeX 还原 + 代码题 AST 解析专项优化
